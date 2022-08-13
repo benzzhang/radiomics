@@ -3,8 +3,6 @@ object:
     roi: C
     # 'A'-ADC, 'D'-DWI, 'T'-T2WI
     series: A
-    # 分类数量
-    type: 2
 
 classifier:
     filter: LASSO,RFE
@@ -12,5 +10,5 @@ classifier:
     RFE_based: LR,SVM
 
 file_path:
-    csv: './data2'
-    log: './output'
+    csv: '../data2'
+    log: '../output'

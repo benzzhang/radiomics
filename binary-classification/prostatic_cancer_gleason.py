@@ -1,4 +1,5 @@
 import csv
+import datetime
 import os
 
 import numpy as np
@@ -21,7 +22,7 @@ from sklearn.preprocessing import StandardScaler, scale, normalize, label_binari
 from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score
 
 
-def featurs_deal(csv_file, type):
+def featurs_deal(csv_file):
     print('reading data from ', csv_file)
 
     data_ori = pd.read_csv(csv_file)
@@ -92,30 +93,27 @@ def featurs_deal(csv_file, type):
     x_test = pd.DataFrame(x_test, columns=columns)
     y_train = data_train['Label']
     y_test = data_test['Label']
-    if type == 2:
-        # Label 0 -> 1 , 1 -> 2
-        y_train = label_binarize(y_train, classes=[1, 2])
-        y_train = y_train.ravel()
-        y_test = label_binarize(y_test, classes=[1, 2])
-        y_test = y_test.ravel()
 
-    elif type == 3:
-        # Label 0 ->  , 1 -> , 2 ->
-        y_train = label_binarize(y_train, classes=[0, 1, 2])
-        y_train = y_train.ravel()
-        y_test = label_binarize(y_test, classes=[0, 1, 2])
-        y_test = y_test.ravel()
+    # Label 0 -> 1 , 1 -> 2
+    y_train = label_binarize(y_train, classes=[1, 2])
+    y_train = y_train.ravel()
+    y_test = label_binarize(y_test, classes=[1, 2])
+    y_test = y_test.ravel()
+
+    # drop columns include 'NaN' / 'INF' / too Large
+    is_NaN= x_train.isnull().any() # False - 无缺失值
+    not_NaN_index = is_NaN[is_NaN == False].index
+    x_train = x_train[not_NaN_index]
+    x_test = x_test[not_NaN_index]
+
     return x_train, y_train, x_test, y_test
 
 
-def features_reduction(clf, data):
-    import warnings
-    warnings.filterwarnings('ignore')
-
-    filter = clf['filter']
+def features_reduction(data, filter, based=None):
     x_train, y_train, x_test, y_test = data
 
-    if filter == 'LASSO':
+    # lasso
+    if based == None:
         alphas = np.logspace(-4, 1, 50)
         model_lassoCV = LassoCV(alphas=alphas, max_iter=100000, cv=5).fit(x_train, y_train)
         coef = pd.Series(model_lassoCV.coef_, index=x_train.columns)
@@ -124,8 +122,9 @@ def features_reduction(clf, data):
         x_train = x_train[index]
         x_test = x_test[index]
 
-    elif filter == 'RFE':
-        if clf['RFE_based'] == 'LR':
+    # rfe
+    else:
+        if based == 'LR':
             model = LogisticRegression()
             rfe = RFE(estimator=model, n_features_to_select=10)
             selector = rfe.fit(x_train, y_train)
@@ -136,7 +135,7 @@ def features_reduction(clf, data):
             x_test = x_test[index]
 
 
-        elif clf['RFE_based'] == 'SVM':
+        elif based == 'SVM':
             model = SVC(kernel='linear', probability=True, random_state=42)
             rfe = RFE(estimator=model, n_features_to_select=10)
             selector = rfe.fit(x_train, y_train)
@@ -162,14 +161,13 @@ def features_reduction(clf, data):
     return x_train, y_train, x_test, y_test
 
 
-def classify(clf, data):
+def classify(model, data):
     # StratifiedKFold - 分层抽样：训练集，测试集中各类别样本的比例与原始数据集中相同
-    kflod = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
+    kflod = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
     x_train, y_train, x_test, y_test = data
 
     classifier = None
     parameters_grid = None
-    model = clf['model']
     if model == 'RF':
         classifier = RandomForestClassifier(n_jobs=-1, random_state=42)
 
@@ -177,10 +175,10 @@ def classify(clf, data):
             {
                 'n_estimators': [int(x) for x in np.linspace(start=10, stop=200, num=20)],
                 # 'max_features': ['auto', 'sqrt'],
-                'max_depth': [int(x) for x in np.linspace(5, 105, num=25)],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
-                'bootstrap': [True, False]
+                # 'max_depth': [int(x) for x in np.linspace(5, 105, num=25)],
+                # 'min_samples_split': [2, 5, 10],
+                # 'min_samples_leaf': [1, 2, 4],
+                # 'bootstrap': [True, False]
             }
         ]
 
@@ -203,7 +201,7 @@ def classify(clf, data):
         classifier = SVC(kernel='linear',
                          probability=True,
                          class_weight='balanced',
-                         random_state=0)
+                         random_state=42)
 
         parameters_grid = [
             {
@@ -233,10 +231,10 @@ def classify(clf, data):
         print('Best ' + model + ' Model: ', grid_search.best_estimator_)
         pre_proba = grid_search.best_estimator_.predict_proba(x_test)
         pre = grid_result.best_estimator_.predict(x_test)
-        print(x_test)
-        print(y_test)
-        print(pre_proba)
-        print(pre)
+        # print(x_test)
+        # print(y_test)
+        # print(pre_proba)
+        # print(pre)
         accuracy, precision, recall, f1 = accuracy_score(y_test, pre), \
                                           precision_score(y_test, pre), \
                                           recall_score(y_test, pre), \
@@ -250,20 +248,8 @@ def classify(clf, data):
         return accuracy, precision, recall, f1
 
 
-def main(config_file):
-    with open(config_file) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    modality = config['object']['series']
-    roi = config['object']['roi']
-    type = config['object']['type']
-    classifier = config['classifier']
-
-    csv_file = './R' + modality + '-' + roi + '.csv'
-    data = featurs_deal(csv_file, type)
-    data = features_reduction(classifier, data)
-    accuracy, precision, recall, f1 = classify(classifier, data)
-
-    file = os.path.join(config['save_path']['log'], 'log.txt')
+def create_log(config, filter, model, csv_name, result, based=None):
+    file = os.path.join(config['file_path']['log'], 'log.txt')
     if not os.path.isfile(file):
         f = open(file, mode="w", encoding="utf-8")
         f.write('%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
@@ -276,23 +262,61 @@ def main(config_file):
         f.close()
 
     with open(file, 'a') as f:
-        method = classifier['filter']
-        if classifier['filter'] == 'RFE':
-            method = classifier['filter'] + '(' + classifier['RFE_based'] + ')'
-        f.write('%s%s%s%s%s%s%s%s\n' % (csv_file.center(15, ' '),
-                                        classifier['model'].center(15, ' '),
+        method = filter
+        if filter == 'RFE':
+            method = filter + '(' + based + ')'
+        f.write('%s%s%s%s%s%s%s%s\n' % (csv_name.center(15, ' '),
+                                        model.center(15, ' '),
                                         method.center(15, ' '),
-                                        str(np.around(accuracy, 4)).center(15, ' '),
-                                        str(np.around(precision, 4)).center(15, ' '),
-                                        str(np.around(recall, 4)).center(15, ' '),
-                                        str(np.around(f1, 4)).center(15, ' '),
+                                        str(np.around(result[0], 4)).center(15, ' '),
+                                        str(np.around(result[1], 4)).center(15, ' '),
+                                        str(np.around(result[2], 4)).center(15, ' '),
+                                        str(np.around(result[3], 4)).center(15, ' '),
                                         time.strftime('%Y-%m-%d %H:%M', time.localtime()).center(20, ' ')))
+
+
+def main(config_file):
+    with open(config_file) as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    modality = config['object']['series']
+    roi = config['object']['roi']
+    classifier = config['classifier']
+
+    csv_file = 'R' + modality + '-' + roi + '.csv'
+    dealt_data = featurs_deal(os.path.join(config['file_path']['csv'], csv_file))
+
+    classifier = [x for x in classifier.values()]
+    filter = [x for x in classifier[0].split(',')]
+    model = [x for x in classifier[1].split(',')]
+    based = [x for x in classifier[2].split(',')]
+
+    for fi in filter:
+        if fi == 'RFE':
+            for b in based:
+                reduced_data = features_reduction(dealt_data, fi, b)
+                for m in model:
+                    print('using %s with %s based on %s ...' % (m, fi, b))
+                    t0 = datetime.datetime.now()
+                    result = classify(m, reduced_data)
+                    print('spend time: {}s'.format((datetime.datetime.now() - t0).seconds))
+                    create_log(config, fi, m, csv_file, result, based=b)
+        else:
+            reduced_data = features_reduction(dealt_data, fi)
+            for m in model:
+                print('using %s with %s ...' % (m, fi))
+                t0 = datetime.datetime.now()
+                result = classify(m, reduced_data)
+                print('spend time: {}s'.format((datetime.datetime.now() - t0).seconds))
+                create_log(config, fi, m, csv_file, result)
 
 
 if __name__ == '__main__':
     import argparse
+    import warnings
+
+    warnings.filterwarnings('ignore')
 
     parser = argparse.ArgumentParser(description='Prostatic Cancer Classifier on Gleason')
-    parser.add_argument('--config-file', type=str, default='./config_AdjustParm.yaml')
+    parser.add_argument('--config-file', type=str, default='./config.yaml')
     args = parser.parse_args()
     main(args.config_file)
