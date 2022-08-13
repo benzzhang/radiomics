@@ -1,18 +1,16 @@
 object:
     # 'M'-瘤体, 'P'-瘤周, 'C'-瘤内
-    roi: M
+    roi: C
     # 'A'-ADC, 'D'-DWI, 'T'-T2WI
-    series: T
+    series: A
     # 分类数量
     type: 2
 
 classifier:
-    # SVM, RF, Bayes, KNN, DT, GNB, AB
-    model: Bayes
-    # LASSO, RFE, UFS, MI
-    filter: RFE
-    # LR, SVM
-    RFE_based: LR
+    filter: LASSO,RFE
+    model: KNN,SVM,Bayes,RF
+    RFE_based: LR,SVM
 
-save_path:
+file_path:
+    csv: './data2'
     log: './output'
