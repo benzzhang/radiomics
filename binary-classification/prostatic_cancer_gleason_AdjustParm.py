@@ -100,7 +100,7 @@ def featurs_deal(csv_file):
     y_test = y_test.ravel()
 
     # drop columns include 'NaN' / 'INF' / too Large
-    is_NaN = x_train.isnull().any()  # False - 无缺失值
+    is_NaN = x_train.isnull().any() # False - 无缺失值
     not_NaN_index = is_NaN[is_NaN == False].index
     x_train = x_train[not_NaN_index]
     x_test = x_test[not_NaN_index]
@@ -212,7 +212,6 @@ def classify(clf, data):
     if model == 'RF':
         # random_state?
         classifier = RandomForestClassifier(n_estimators=64,
-                                            max_depth=3,
                                             max_features=9,
                                             n_jobs=-1,
                                             random_state=42)
@@ -220,10 +219,10 @@ def classify(clf, data):
         parameters_grid = [
             {
                 # 'n_estimators': [int(x) for x in np.arange(5, 150, 5)], #42
-                # 'max_depth': [int(x) for x in np.arange(1, 20, 1)], #3
+                'max_depth': [int(x) for x in np.arange(1, 20, 1)], #3
                 # 'max_features': [int(x) for x in np.arange(5, 30, 1)], #9
-                'min_samples_leaf': [int(x) for x in np.arange(5, 10, 1)],
-                'min_samples_split': [int(x) for x in np.arange(1, 10, 1)], #3
+                # 'min_samples_leaf': [int(x) for x in np.arange(5, 10, 1)],
+                # 'min_samples_split': [int(x) for x in np.arange(1, 10, 1)], #3
             }
         ]
 
@@ -265,7 +264,7 @@ def classify(clf, data):
                                           f1_score(y_test, pre),\
                                           roc_auc_score(y_test, pre)
 
-        return accuracy, precision, recall, f1. auc
+        return accuracy, precision, recall, f1, auc
 
     # GridSearch
     if parameters_grid is not None:
@@ -282,7 +281,7 @@ def classify(clf, data):
         pre = grid_result.best_estimator_.predict(x_test)
         # print(x_test)
         print(y_test)
-        # print(pre_proba)
+        print(pre_proba)
         print(pre)
         accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre), \
                                           precision_score(y_test, pre), \
@@ -290,7 +289,7 @@ def classify(clf, data):
                                           f1_score(y_test, pre),\
                                           roc_auc_score(y_test, pre)
 
-        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f \n f1:%.2f'  % (accuracy, precision, recall, f1, auc))
+        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f \n auc:%.2f'  % (accuracy, precision, recall, f1, auc))
         # test_score = accuracy
         # test_score = grid_search.best_estimator_.fit(x_train, y_train).score(x_test, y_test)
         # print(model + ' Test Score: ', test_score)
@@ -305,12 +304,12 @@ def main(config_file):
     roi = config['object']['roi']
     classifier = config['classifier']
 
-    csv_file = '../R' + modality + '-' + roi + '.csv'
-    data = featurs_deal(csv_file)
+    csv_file = 'R' + modality + '-' + roi + '.csv'
+    data = featurs_deal(os.path.join(config['file_path']['csv'], csv_file))
     data = features_reduction(classifier, data)
-    accuracy, precision, recall, f1, auc = classify(classifier, data)
+    result = classify(classifier, data)
 
-    file = os.path.join(config['save_path']['log'], 'log.txt')
+    file = os.path.join(config['file_path']['log'], 'log.txt')
     if not os.path.isfile(file):
         f = open(file, mode="w", encoding="utf-8")
         f.write('%s%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
@@ -330,11 +329,11 @@ def main(config_file):
         f.write('%s%s%s%s%s%s%s%s%s\n' % (csv_file.center(15, ' '),
                                         classifier['model'].center(15, ' '),
                                         method.center(15, ' '),
-                                        str(np.around(accuracy, 4)).center(15, ' '),
-                                        str(np.around(precision, 4)).center(15, ' '),
-                                        str(np.around(recall, 4)).center(15, ' '),
-                                        str(np.around(f1, 4)).center(15, ' '),
-                                        str(np.around(auc, 4)).center(15, ' '),
+                                        str(np.around(result[0], 4)).center(15, ' '),
+                                        str(np.around(result[1], 4)).center(15, ' '),
+                                        str(np.around(result[2], 4)).center(15, ' '),
+                                        str(np.around(result[3], 4)).center(15, ' '),
+                                        str(np.around(result[4], 4)).center(15, ' '),
                                         time.strftime('%Y-%m-%d %H:%M', time.localtime()).center(20, ' '),))
 
 

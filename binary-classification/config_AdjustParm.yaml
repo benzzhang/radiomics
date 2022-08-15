@@ -2,7 +2,7 @@ object:
     # 'M'-瘤体, 'P'-瘤周, 'C'-瘤内
     roi: M
     # 'A'-ADC, 'D'-DWI, 'T'-T2WI
-    series: T
+    series: D
 
 classifier:
     # SVM, RF, Bayes, KNN, DT, AB
@@ -12,5 +12,6 @@ classifier:
     # LR, SVM
     RFE_based: SVM
 
-save_path:
+file_path:
+    csv: '../data2'
     log: '../output'

@@ -2,7 +2,7 @@ object:
     # 'M'-瘤体, 'P'-瘤周, 'C'-瘤内
     roi: C
     # 'A'-ADC, 'D'-DWI, 'T'-T2WI
-    series: A
+    series: T
 
 classifier:
     filter: LASSO,RFE

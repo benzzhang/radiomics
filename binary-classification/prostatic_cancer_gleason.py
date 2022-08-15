@@ -19,7 +19,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split, StratifiedKFold
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, scale, normalize, label_binarize
-from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 
 def featurs_deal(csv_file):
@@ -45,8 +45,8 @@ def featurs_deal(csv_file):
     data_H = data[:][data['Label'] == 2]
 
     # shuffle
-    data_L = data_L.sample(frac=1.0)
-    data_H = data_H.sample(frac=1.0)
+    data_L = data_L.sample(frac=1.0, random_state=42)
+    data_H = data_H.sample(frac=1.0, random_state=42)
 
     data_train_L = data_L.iloc[:42, :]
     data_train_H = data_H.iloc[:98, :]
@@ -101,7 +101,7 @@ def featurs_deal(csv_file):
     y_test = y_test.ravel()
 
     # drop columns include 'NaN' / 'INF' / too Large
-    is_NaN= x_train.isnull().any() # False - 无缺失值
+    is_NaN = x_train.isnull().any() # False - 无缺失值
     not_NaN_index = is_NaN[is_NaN == False].index
     x_train = x_train[not_NaN_index]
     x_test = x_test[not_NaN_index]
@@ -114,7 +114,7 @@ def features_reduction(data, filter, based=None):
 
     # lasso
     if based == None:
-        alphas = np.logspace(-4, 1, 50)
+        alphas = np.logspace(-4, 1, 100)
         lassoCV = LassoCV(alphas=alphas, max_iter=10000, cv=5).fit(x_train, y_train)
         coef = pd.Series(lassoCV.coef_, index=x_train.columns)
         print('α - %.4f , %s %d ' % (lassoCV.alpha_, 'Lasso picked', sum(coef != 0)))
@@ -153,6 +153,7 @@ def features_reduction(data, filter, based=None):
 
     # PCA - necessary ?
     if x_train.shape[1] > 10:
+        print('applying PCA ...')
         pca = PCA(n_components=10)
         pca.fit(x_train)
         x_train = pca.transform(x_train)
@@ -163,22 +164,22 @@ def features_reduction(data, filter, based=None):
 
 def classify(model, data):
     # StratifiedKFold - 分层抽样：训练集，测试集中各类别样本的比例与原始数据集中相同
-    kflod = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+    kflod = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     x_train, y_train, x_test, y_test = data
 
     classifier = None
     parameters_grid = None
     if model == 'RF':
-        classifier = RandomForestClassifier(n_jobs=-1, random_state=42)
+        classifier = RandomForestClassifier(n_estimators=64,
+                                            n_jobs=-1,
+                                            random_state=42)
 
         parameters_grid = [
             {
-                'n_estimators': [int(x) for x in np.linspace(start=35, stop=50, num=1)], #41
-                # 'max_features': ['auto', 'sqrt'],
-                # 'max_depth': [int(x) for x in np.linspace(5, 105, num=25)],
-                # 'min_samples_split': [2, 5, 10],
-                # 'min_samples_leaf': [1, 2, 4],
-                # 'bootstrap': [True, False]
+                # 'n_estimators': [int(x) for x in np.linspace(start=35, stop=50, num=1)], #41
+                'max_depth': [int(x) for x in np.arange(1, 5, 1)],
+                # 'min_samples_leaf': [int(x) for x in np.arange(5, 10, 1)],
+                # 'min_samples_split': [int(x) for x in np.arange(1, 10, 1)]
             }
         ]
 
@@ -198,13 +199,13 @@ def classify(model, data):
         ]
 
     elif model == 'SVM':
-        classifier = SVC(kernel='linear',
-                         probability=True,
+        classifier = SVC(probability=True,
                          class_weight='balanced',
                          random_state=42)
 
         parameters_grid = [
             {
+                "kernel": ['linear', 'rbf'],
                 "gamma": [0.0001, 0.0005, 0.001, 0.01, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 10, 100],
                 "C": [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000]
             }
@@ -214,12 +215,13 @@ def classify(model, data):
         classifier = GaussianNB()
         classifier.fit(x_train, y_train)
         pre = classifier.predict(x_test)
-        accuracy, precision, recall, f1 = accuracy_score(y_test, pre), \
-                                          precision_score(y_test, pre), \
-                                          recall_score(y_test, pre), \
-                                          f1_score(y_test, pre)
+        accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre),\
+                                               precision_score(y_test, pre),\
+                                               recall_score(y_test, pre), \
+                                               f1_score(y_test, pre),\
+                                               roc_auc_score(y_test, pre)
 
-        return accuracy, precision, recall, f1
+        return accuracy, precision, recall, f1, auc
 
     if parameters_grid is not None:
         grid_search = GridSearchCV(estimator=classifier,
@@ -235,44 +237,47 @@ def classify(model, data):
         # print(y_test)
         # print(pre_proba)
         # print(pre)
-        accuracy, precision, recall, f1 = accuracy_score(y_test, pre), \
-                                          precision_score(y_test, pre), \
-                                          recall_score(y_test, pre), \
-                                          f1_score(y_test, pre)
+        accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre), \
+                                               precision_score(y_test, pre), \
+                                               recall_score(y_test, pre), \
+                                               f1_score(y_test, pre),\
+                                               roc_auc_score(y_test, pre)
 
-        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f' % (accuracy, precision, recall, f1))
+        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f \n auc:%.2f' % (accuracy, precision, recall, f1, auc))
         # test_score = accuracy
         # test_score = grid_search.best_estimator_.fit(x_train, y_train).score(x_test, y_test)
         # print(model + ' Test Score: ', test_score)
 
-        return accuracy, precision, recall, f1
+        return accuracy, precision, recall, f1, auc
 
 
 def create_log(config, filter, model, csv_name, result, based=None):
     file = os.path.join(config['file_path']['log'], 'log.txt')
     if not os.path.isfile(file):
         f = open(file, mode="w", encoding="utf-8")
-        f.write('%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
-                                      'model'.center(15, ' '),
-                                      'select method'.center(15, ' '),
-                                      'accuracy'.center(15, ' '),
-                                      'precision'.center(15, ' '),
-                                      'recall'.center(15, ' '),
-                                      'f1'.center(15, ' ')))
+        f.write('%s%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
+                                        'model'.center(15, ' '),
+                                        'select method'.center(15, ' '),
+                                        'accuracy'.center(15, ' '),
+                                        'precision'.center(15, ' '),
+                                        'recall'.center(15, ' '),
+                                        'f1'.center(15, ' '),
+                                        'auc'.center(15, ' ')))
         f.close()
 
     with open(file, 'a') as f:
         method = filter
         if filter == 'RFE':
             method = filter + '(' + based + ')'
-        f.write('%s%s%s%s%s%s%s%s\n' % (csv_name.center(15, ' '),
-                                        model.center(15, ' '),
-                                        method.center(15, ' '),
-                                        str(np.around(result[0], 4)).center(15, ' '),
-                                        str(np.around(result[1], 4)).center(15, ' '),
-                                        str(np.around(result[2], 4)).center(15, ' '),
-                                        str(np.around(result[3], 4)).center(15, ' '),
-                                        time.strftime('%Y-%m-%d %H:%M', time.localtime()).center(20, ' ')))
+        f.write('%s%s%s%s%s%s%s%s%s\n' % (csv_name.center(15, ' '),
+                                          model.center(15, ' '),
+                                          method.center(15, ' '),
+                                          str(np.around(result[0], 4)).center(15, ' '),
+                                          str(np.around(result[1], 4)).center(15, ' '),
+                                          str(np.around(result[2], 4)).center(15, ' '),
+                                          str(np.around(result[3], 4)).center(15, ' '),
+                                          str(np.around(result[4], 4)).center(15, ' '),
+                                          time.strftime('%Y-%m-%d %H:%M', time.localtime()).center(20, ' ')))
 
 
 def main(config_file):
