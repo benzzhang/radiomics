@@ -115,9 +115,9 @@ def features_reduction(data, filter, based=None):
     # lasso
     if based == None:
         alphas = np.logspace(-4, 1, 50)
-        model_lassoCV = LassoCV(alphas=alphas, max_iter=100000, cv=5).fit(x_train, y_train)
-        coef = pd.Series(model_lassoCV.coef_, index=x_train.columns)
-        print('α - %.4f , %s %d ' % (model_lassoCV.alpha_, 'Lasso picked', sum(coef != 0)))
+        lassoCV = LassoCV(alphas=alphas, max_iter=10000, cv=5).fit(x_train, y_train)
+        coef = pd.Series(lassoCV.coef_, index=x_train.columns)
+        print('α - %.4f , %s %d ' % (lassoCV.alpha_, 'Lasso picked', sum(coef != 0)))
         index = coef[coef != 0].index
         x_train = x_train[index]
         x_test = x_test[index]
@@ -173,7 +173,7 @@ def classify(model, data):
 
         parameters_grid = [
             {
-                'n_estimators': [int(x) for x in np.linspace(start=10, stop=200, num=20)],
+                'n_estimators': [int(x) for x in np.linspace(start=35, stop=50, num=1)], #41
                 # 'max_features': ['auto', 'sqrt'],
                 # 'max_depth': [int(x) for x in np.linspace(5, 105, num=25)],
                 # 'min_samples_split': [2, 5, 10],

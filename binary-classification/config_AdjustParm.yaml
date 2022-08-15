@@ -6,11 +6,11 @@ object:
 
 classifier:
     # SVM, RF, Bayes, KNN, DT, AB
-    model: Bayes
-    # LASSO, RFE, UFS, MI
+    model: RF
+    # LASSO, RFE, RFC, MI
     filter: RFE
     # LR, SVM
-    RFE_based: LR
+    RFE_based: SVM
 
 save_path:
     log: '../output'
