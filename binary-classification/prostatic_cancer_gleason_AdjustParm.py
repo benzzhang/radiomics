@@ -20,7 +20,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, scale, normalize, label_binarize
 from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-
+seed = 42
 def featurs_deal(csv_file):
     print('reading data from ', csv_file)
 
@@ -44,38 +44,38 @@ def featurs_deal(csv_file):
     data_H = data[:][data['Label'] == 2]
 
     # shuffle
-    data_L = data_L.sample(frac=1.0, random_state=42)
-    data_H = data_H.sample(frac=1.0, random_state=42)
+    data_L = data_L.sample(frac=1.0, random_state=seed)
+    data_H = data_H.sample(frac=1.0, random_state=seed)
 
-    data_train_L = data_L.iloc[:42, :]
-    data_train_H = data_H.iloc[:98, :]
+    data_train_L = data_L.iloc[:41, :]
+    data_train_H = data_H.iloc[:81, :]
 
-    data_test_L = data_L.iloc[42:, :]
-    data_test_H = data_H.iloc[98:, :]
+    data_test_L = data_L.iloc[41:, :]
+    data_test_H = data_H.iloc[81:, :]
 
     # T test
-    index = []
-    for colName in data.columns[:]:
-        if levene(data_train_L[colName], data_train_H[colName])[1] > 0.05:
-            if ttest_ind(data_train_L[colName], data_train_H[colName])[1] < 0.05:
-                # 独立样本T检验结果具有显著性差异(p > 0.05), 特征索引colName加入index
-                index.append(colName)
-        else:
-            if ttest_ind(data_train_L[colName], data_train_H[colName], equal_var=False)[1] < 0.05:
-                index.append(colName)
-
-    print(len(index), 'features obtained after T test: ', index)
+    # index = []
+    # for colName in data.columns[:]:
+    #     if levene(data_train_L[colName], data_train_H[colName])[1] > 0.05:
+    #         if ttest_ind(data_train_L[colName], data_train_H[colName])[1] < 0.05:
+    #             # 独立样本T检验结果具有显著性差异(p > 0.05), 特征索引colName加入index
+    #             index.append(colName)
+    #     else:
+    #         if ttest_ind(data_train_L[colName], data_train_H[colName], equal_var=False)[1] < 0.05:
+    #             index.append(colName)
+    #
+    # print(len(index), 'features obtained after T test: ', index)
 
     # concat LABEL1 and LABEL2
-    data_train_L = data_train_L[index]
-    data_train_H = data_train_H[index]
+    # data_train_L = data_train_L[index]
+    # data_train_H = data_train_H[index]
     data_train = pd.concat([data_train_L, data_train_H])
     # shuffle
     data_train = shuffle(data_train)
     x_train = data_train[data_train.columns[1:]]
 
-    data_test_L = data_test_L[index]
-    data_test_H = data_test_H[index]
+    # data_test_L = data_test_L[index]
+    # data_test_H = data_test_H[index]
     data_test = pd.concat([data_test_L, data_test_H])
     data_test = shuffle(data_test)
     x_test = data_test[data_test.columns[1:]]
@@ -99,11 +99,24 @@ def featurs_deal(csv_file):
     y_test = label_binarize(y_test, classes=[1, 2])
     y_test = y_test.ravel()
 
-    # drop columns include 'NaN' / 'INF' / too Large
-    is_NaN = x_train.isnull().any() # False - 无缺失值
-    not_NaN_index = is_NaN[is_NaN == False].index
-    x_train = x_train[not_NaN_index]
-    x_test = x_test[not_NaN_index]
+    # drop columns include 'NaN'
+    # is_NaN = x_train.isnull().any() # False - 无缺失值
+    # not_NaN_index = is_NaN[is_NaN == False].index
+    # x_train = x_train[not_NaN_index]
+    # x_test = x_test[not_NaN_index]
+
+    # fill NaN with mean
+    x_train.fillna(x_train.mean())
+    x_test.fillna(x_test.mean())
+
+    # handle outlier, dataset must be normally distributed
+    # for i in x_train.columns:
+    #     mean_data = x_train[i].mean()
+    #     std_data = x_train[i].std()
+    #     cols = (x_train[i] > mean_data+3*std_data) | (x_train[i] < mean_data-3*std_data)
+    #     if cols.any():
+    #         print(i+' has outlier')
+    #         print('sum: ', sum(cols == True))
 
     return x_train, y_train, x_test, y_test
 
@@ -116,8 +129,7 @@ def features_reduction(clf, data):
     x_train, y_train, x_test, y_test = data
 
     if filter == 'LASSO':
-        alphas = np.logspace(-4, 1, 100)
-        lassoCV = LassoCV(alphas=alphas, max_iter=10000, cv=5).fit(x_train, y_train)
+        lassoCV = LassoCV(max_iter=10000, cv=5, random_state=seed).fit(x_train, y_train)
         coef = pd.Series(lassoCV.coef_, index=x_train.columns)
         print('α - %.4f , %s %d ' % (lassoCV.alpha_, 'Lasso picked', sum(coef != 0)))
 
@@ -164,8 +176,9 @@ def features_reduction(clf, data):
             x_test = x_test[index]
 
         elif clf['RFE_based'] == 'SVM':
-            model = SVC(kernel='linear', probability=True, random_state=42)
-            rfe = RFE(estimator=model, n_features_to_select=10)
+            model = SVC(kernel='linear', probability=True, random_state=seed)
+            # rfe = RFE(estimator=model, n_features_to_select=10)
+            rfe = RFE(estimator=model)
             selector = rfe.fit(x_train, y_train)
 
             # method 1:
@@ -180,19 +193,19 @@ def features_reduction(clf, data):
             # x_test = selector.transform(x_test)
 
     # PCA - necessary ?
-    if x_train.shape[1] > 10:
-        print('applying PCA ...')
-        pca = PCA(n_components=10)
-        pca.fit(x_train)
-        x_train = pca.transform(x_train)
-        x_test = pca.transform(x_test)
+    # if x_train.shape[1] > 10:
+    #     print('applying PCA ...')
+    #     pca = PCA(n_components=10)
+    #     pca.fit(x_train)
+    #     x_train = pca.transform(x_train)
+    #     x_test = pca.transform(x_test)
 
     return x_train, y_train, x_test, y_test
 
 
 def classify(clf, data):
     # StratifiedKFold - 分层抽样：训练集，测试集中各类别样本的比例与原始数据集中相同
-    kflod = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    kflod = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
     x_train, y_train, x_test, y_test = data
 
     # 调参，确定n_estimators大概范围
@@ -212,15 +225,13 @@ def classify(clf, data):
     if model == 'RF':
         # random_state?
         classifier = RandomForestClassifier(n_estimators=64,
-                                            max_features=9,
-                                            n_jobs=-1,
-                                            random_state=42)
+                                            n_jobs=-1)
 
         parameters_grid = [
             {
                 # 'n_estimators': [int(x) for x in np.arange(5, 150, 5)], #42
                 'max_depth': [int(x) for x in np.arange(1, 20, 1)], #3
-                # 'max_features': [int(x) for x in np.arange(5, 30, 1)], #9
+                'max_features': [int(x) for x in np.arange(5, 30, 1)], #9
                 # 'min_samples_leaf': [int(x) for x in np.arange(5, 10, 1)],
                 # 'min_samples_split': [int(x) for x in np.arange(1, 10, 1)], #3
             }
@@ -242,9 +253,9 @@ def classify(clf, data):
         ]
 
     elif model == 'SVM':
-        classifier = SVC(probability=True,
-                         class_weight='balanced',
-                         random_state=0)
+        classifier = SVC(kernel='rbf',
+                         probability=True,
+                         random_state=seed)
 
         parameters_grid = [
             {
@@ -281,7 +292,7 @@ def classify(clf, data):
         pre = grid_result.best_estimator_.predict(x_test)
         # print(x_test)
         print(y_test)
-        print(pre_proba)
+        # print(pre_proba)
         print(pre)
         accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre), \
                                           precision_score(y_test, pre), \
