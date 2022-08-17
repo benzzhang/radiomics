@@ -1,13 +1,13 @@
 object:
-    # 'M'-瘤体, 'P'-瘤周, 'C'-瘤内
-    roi: M
     # 'A'-ADC, 'D'-DWI, 'T'-T2WI
     series: D
+    # 'M'-瘤体, 'P'-瘤周, 'C'-瘤内
+    roi: M
 
 classifier:
-    # SVM, RF, Bayes, KNN, DT, AB
-    model: RF
-    # LASSO, RFE, RFC, MI
+    # SVM, RF, Bayes, KNN, LR
+    model: Bayes
+    # PCA / LASSO / RFE
     filter: LASSO
     # LR, SVM
     RFE_based: SVM

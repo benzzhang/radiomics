@@ -6,11 +6,13 @@ import pandas as pd
 import sklearn.svm
 import yaml
 import time
+import seaborn as sns
 from matplotlib import pyplot as plt
+from imblearn.over_sampling import SMOTE
 from scipy.stats import levene, ttest_ind
 from sklearn.decomposition import PCA
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_selection import RFE
+from sklearn.feature_selection import RFE, RFECV
 from sklearn.linear_model import LassoCV, LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
@@ -21,6 +23,8 @@ from sklearn.preprocessing import StandardScaler, scale, normalize, label_binari
 from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 seed = 42
+
+
 def featurs_deal(csv_file):
     print('reading data from ', csv_file)
 
@@ -36,10 +40,12 @@ def featurs_deal(csv_file):
     for i in str_idx:
         data = data.drop(columns=[header_row[i]])
 
-    # low level cases and high level cases in data are 59 and 116
-    # make 'low:high' in testset is 1:1
-    # (59-42):(116-98) = 17:18 in testset,
-    # 42:98 in trainset.
+    # the number of low and high level cases are A and B
+    # make 'low:high' in testset to be 1:1
+    # make train:test to be 7:3
+    # (59-26):(116-26) = 33:90 in trainset,
+    # 26:26 in trainset.
+
     data_L = data[:][data['Label'] == 1]
     data_H = data[:][data['Label'] == 2]
 
@@ -47,11 +53,11 @@ def featurs_deal(csv_file):
     data_L = data_L.sample(frac=1.0, random_state=seed)
     data_H = data_H.sample(frac=1.0, random_state=seed)
 
-    data_train_L = data_L.iloc[:41, :]
-    data_train_H = data_H.iloc[:81, :]
+    data_train_L = data_L.iloc[:33, :]
+    data_train_H = data_H.iloc[:90, :]
 
-    data_test_L = data_L.iloc[41:, :]
-    data_test_H = data_H.iloc[81:, :]
+    data_test_L = data_L.iloc[33:, :]
+    data_test_H = data_H.iloc[90:, :]
 
     # T test
     # index = []
@@ -71,13 +77,13 @@ def featurs_deal(csv_file):
     # data_train_H = data_train_H[index]
     data_train = pd.concat([data_train_L, data_train_H])
     # shuffle
-    data_train = shuffle(data_train)
+    data_train = shuffle(data_train, random_state=seed)
     x_train = data_train[data_train.columns[1:]]
 
     # data_test_L = data_test_L[index]
     # data_test_H = data_test_H[index]
     data_test = pd.concat([data_test_L, data_test_H])
-    data_test = shuffle(data_test)
+    data_test = shuffle(data_test, random_state=seed)
     x_test = data_test[data_test.columns[1:]]
 
     # keep columns-name and normalize
@@ -86,45 +92,63 @@ def featurs_deal(csv_file):
     x_train = scaler.fit_transform(x_train)
     x_test = scaler.transform(x_test)
 
-    # x_train = scaler.transform(x_train)
     x_train = pd.DataFrame(x_train, columns=columns)
-    # x_test = scaler.transform(x_test)
     x_test = pd.DataFrame(x_test, columns=columns)
     y_train = data_train['Label']
     y_test = data_test['Label']
 
-    # Label 0 -> 1 , 1 -> 2
+    # 原本标签1&2 变成[0]&[1]
     y_train = label_binarize(y_train, classes=[1, 2])
     y_train = y_train.ravel()
     y_test = label_binarize(y_test, classes=[1, 2])
     y_test = y_test.ravel()
 
+    print('original features nums:', x_train.shape[1])
     # drop columns include 'NaN'
-    # is_NaN = x_train.isnull().any() # False - 无缺失值
-    # not_NaN_index = is_NaN[is_NaN == False].index
-    # x_train = x_train[not_NaN_index]
-    # x_test = x_test[not_NaN_index]
+    is_NaN = x_train.isnull().any()  # False - 无缺失值
+    if sum(is_NaN[is_NaN == True]) > 0:
+        # print index name
+        # NaN_index = is_NaN[is_NaN == True].index
+        # print(NaN_index)
 
-    # fill NaN with mean
-    x_train.fillna(x_train.mean())
-    x_test.fillna(x_test.mean())
+        # drop these columns include 'NaN'
+        # not_NaN_index = is_NaN[is_NaN == False].index
+        # x_train = x_train[not_NaN_index]
+        # x_test = x_test[not_NaN_index]
 
-    # handle outlier, dataset must be normally distributed
+        # fill 'NaN' with mean()
+        x_train.fillna(x_train.mean(), inplace=True)
+        x_test.fillna(x_test.mean(), inplace=True)
+
+    # handle outlier. dataset must be normally distributed
     # for i in x_train.columns:
     #     mean_data = x_train[i].mean()
     #     std_data = x_train[i].std()
     #     cols = (x_train[i] > mean_data+3*std_data) | (x_train[i] < mean_data-3*std_data)
     #     if cols.any():
-    #         print(i+' has outlier')
-    #         print('sum: ', sum(cols == True))
+    #         print(i+' has outlier '+sum(cols == True))
+
+    # oversampling
+    print("Before OverSampling, counts of label '1' in trainset: {}".format(sum(y_train == 1)))
+    print("Before OverSampling, counts of label '0' in trainset: {}".format(sum(y_train == 0)))
+    print("oversampling ...")
+
+    sm = SMOTE(random_state=2)
+    x_train_res, y_train_res = sm.fit_sample(x_train, y_train)
+
+    print("After OverSampling, counts of label '1' in trainset: {}".format(sum(y_train_res == 1)))
+    print("After OverSampling, counts of label '0' in trainset: {}".format(sum(y_train_res == 0)))
+
+    # shuffle the resampled trainset
+    x_train_res.insert(loc=0, column='Label', value=y_train_res)
+    x_train_res = x_train_res.sample(frac=1.0, random_state=seed)
+    x_train = x_train_res[x_train_res.columns[1:]]
+    y_train = x_train_res['Label'].ravel()
 
     return x_train, y_train, x_test, y_test
 
 
 def features_reduction(clf, data):
-    import warnings
-    warnings.filterwarnings('ignore')
-
     filter = clf['filter']
     x_train, y_train, x_test, y_test = data
 
@@ -156,7 +180,7 @@ def features_reduction(clf, data):
 
     elif filter == 'RFE':
         if clf['RFE_based'] == 'LR':
-            model = LogisticRegression()
+            model = LogisticRegression(random_state=seed)
             rfe = RFE(estimator=model, n_features_to_select=10)
             selector = rfe.fit(x_train, y_train)
 
@@ -165,7 +189,7 @@ def features_reduction(clf, data):
             x_train = x_train[index]
             x_test = x_test[index]
 
-        if clf['RFE_based'] == 'RFC':
+        elif clf['RFE_based'] == 'RFC':
             model = RandomForestClassifier()
             rfe = RFE(estimator=model, n_features_to_select=10)
             selector = rfe.fit(x_train, y_train)
@@ -177,8 +201,7 @@ def features_reduction(clf, data):
 
         elif clf['RFE_based'] == 'SVM':
             model = SVC(kernel='linear', probability=True, random_state=seed)
-            # rfe = RFE(estimator=model, n_features_to_select=10)
-            rfe = RFE(estimator=model)
+            rfe = RFE(estimator=model, n_features_to_select=10)
             selector = rfe.fit(x_train, y_train)
 
             # method 1:
@@ -192,13 +215,24 @@ def features_reduction(clf, data):
             # x_train = selector.transform(x_train)
             # x_test = selector.transform(x_test)
 
-    # PCA - necessary ?
-    # if x_train.shape[1] > 10:
-    #     print('applying PCA ...')
-    #     pca = PCA(n_components=10)
-    #     pca.fit(x_train)
-    #     x_train = pca.transform(x_train)
-    #     x_test = pca.transform(x_test)
+    elif filter == 'PCA':
+        print('applying PCA ...')
+        pca = PCA(n_components=0.95)
+        pca.fit(x_train)
+        x_train = pca.transform(x_train)
+        x_test = pca.transform(x_test)
+
+    # Spearman rank correlation test
+    x_train_df = pd.DataFrame(x_train)
+    corr_matrix = x_train_df.corr(method='spearman').abs()
+    # draw heatmap
+    sns.set(font_scale=1.0)
+    f, ax = plt.subplots(figsize=(11, 9))
+    sns.heatmap(corr_matrix, cmap="YlOrRd", square=True, ax=ax)
+    f.tight_layout()
+    plt.savefig("correlation_matrix.png", dpi=800)
+
+    print('features nums after dimensionality reduction:', x_train.shape[1])
 
     return x_train, y_train, x_test, y_test
 
@@ -223,92 +257,85 @@ def classify(clf, data):
     parameters_grid = None
     model = clf['model']
     if model == 'RF':
-        # random_state?
-        classifier = RandomForestClassifier(n_estimators=64,
-                                            n_jobs=-1)
+        classifier = RandomForestClassifier(n_jobs=-1)
 
-        parameters_grid = [
-            {
-                # 'n_estimators': [int(x) for x in np.arange(5, 150, 5)], #42
-                'max_depth': [int(x) for x in np.arange(1, 20, 1)], #3
-                'max_features': [int(x) for x in np.arange(5, 30, 1)], #9
-                # 'min_samples_leaf': [int(x) for x in np.arange(5, 10, 1)],
-                # 'min_samples_split': [int(x) for x in np.arange(1, 10, 1)], #3
-            }
-        ]
+        parameters_grid = {
+            'n_estimators': [int(x) for x in np.arange(1, 200, 10)],
+            'max_depth': [3, 4, 5, 6, 7, 8],
+            'max_features': ["auto", "sqat", "log2"],
+            'class_weight': [None, "balanced"]
+        }
+
 
     elif model == 'KNN':
-        classifier = KNeighborsClassifier()
+        classifier = KNeighborsClassifier(n_jobs=-1)
 
-        parameters_grid = [
-            {
-                "n_neighbors": np.arange(2, 20, 1),
-                "weights": ["uniform", "distance"]
-            },
-            {
-                "n_neighbors": np.arange(2, 20, 1),
-                "weights": ["uniform", "distance"],
-                "p": [i for i in range(1, 7)]
-            }
-        ]
+        parameters_grid = {
+            "n_neighbors": np.arange(2, 31),
+            "leaf_size": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+        }
+
+
+    elif model == 'LR':
+        classifier = LogisticRegression(n_jobs=-1)
+
+        parameters_grid = {
+            "penalty": ['l1', 'l2'],
+            "C": [0.01, 0.1, 1.0, 10, 100],
+            "class_weight": [None, 'balanced']
+        }
+
 
     elif model == 'SVM':
-        classifier = SVC(kernel='rbf',
-                         probability=True,
-                         random_state=seed)
+        classifier = SVC(probability=True, gamma='auto')
 
-        parameters_grid = [
-            {
-                "kernel": ['linear', 'rbf'],
-                "gamma": [0.0001, 0.0005, 0.001, 0.01, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 10, 100],
-                "C": [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000]
-            }
-        ]
+        parameters_grid = {
+            "kernel": ['linear', 'rbf', 'poly'],
+            "C": [0.0001, 0.001, 0.01, 0.5, 0.1, 1, 5, 10, 100]
+        }
+
 
     elif model == 'Bayes':
         classifier = GaussianNB()
-        classifier.fit(x_train, y_train)
-        pre = classifier.predict(x_test)
-        accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre), \
-                                          precision_score(y_test, pre), \
-                                          recall_score(y_test, pre), \
-                                          f1_score(y_test, pre),\
-                                          roc_auc_score(y_test, pre)
 
-        return accuracy, precision, recall, f1, auc
+        parameters_grid = {
+            "var_smoothing": [1e-9, 1e-8, 1e-7, 1e-6, 1e-5]
+        }
 
     # GridSearch
     if parameters_grid is not None:
         grid_search = GridSearchCV(estimator=classifier,
                                    param_grid=parameters_grid,
+                                   cv=kflod,
                                    scoring='accuracy',  # tp+tn / tp+tn+fp+fn
                                    # Positive and Negative are both important
-                                   n_jobs=-1,
-                                   cv=kflod)
+                                   )
         grid_result = grid_search.fit(x_train, y_train)
         print('Best ' + model + ' Train Score: %.4f using %s' % (grid_result.best_score_, grid_search.best_params_))
         print('Best ' + model + ' Model: ', grid_search.best_estimator_)
-        pre_proba = grid_search.best_estimator_.predict_proba(x_test)
+        pre_score = grid_search.best_estimator_.predict_proba(x_test)
         pre = grid_result.best_estimator_.predict(x_test)
         # print(x_test)
         print(y_test)
         # print(pre_proba)
         print(pre)
-        accuracy, precision, recall, f1, auc = accuracy_score(y_test, pre), \
+        accuracy, precision, recall, f1 = accuracy_score(y_test, pre), \
                                           precision_score(y_test, pre), \
                                           recall_score(y_test, pre), \
-                                          f1_score(y_test, pre),\
-                                          roc_auc_score(y_test, pre)
+                                          f1_score(y_test, pre)
 
-        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f \n auc:%.2f'  % (accuracy, precision, recall, f1, auc))
+        print(' accuracy:%.2f \n precision:%.2f \n recall:%.2f \n f1:%.2f' % (accuracy, precision, recall, f1))
         # test_score = accuracy
         # test_score = grid_search.best_estimator_.fit(x_train, y_train).score(x_test, y_test)
         # print(model + ' Test Score: ', test_score)
 
-        return accuracy, precision, recall, f1, auc
+        return accuracy, precision, recall, f1
 
 
 def main(config_file):
+    import warnings
+    warnings.filterwarnings('ignore')
+
     with open(config_file) as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     modality = config['object']['series']
@@ -323,28 +350,26 @@ def main(config_file):
     file = os.path.join(config['file_path']['log'], 'log.txt')
     if not os.path.isfile(file):
         f = open(file, mode="w", encoding="utf-8")
-        f.write('%s%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
+        f.write('%s%s%s%s%s%s%s\n' % ('features'.center(15, ' '),
                                       'model'.center(15, ' '),
                                       'select method'.center(15, ' '),
                                       'accuracy'.center(15, ' '),
                                       'precision'.center(15, ' '),
                                       'recall'.center(15, ' '),
-                                      'f1'.center(15, ' '),
-                                      'AUC'.center(15, ' ')))
+                                      'f1'.center(15, ' ')))
         f.close()
 
     with open(file, 'a') as f:
         method = classifier['filter']
         if classifier['filter'] == 'RFE':
             method = classifier['filter'] + '(' + classifier['RFE_based'] + ')'
-        f.write('%s%s%s%s%s%s%s%s%s\n' % (csv_file.center(15, ' '),
+        f.write('%s%s%s%s%s%s%s%s\n' % (csv_file.center(15, ' '),
                                         classifier['model'].center(15, ' '),
                                         method.center(15, ' '),
                                         str(np.around(result[0], 4)).center(15, ' '),
                                         str(np.around(result[1], 4)).center(15, ' '),
                                         str(np.around(result[2], 4)).center(15, ' '),
                                         str(np.around(result[3], 4)).center(15, ' '),
-                                        str(np.around(result[4], 4)).center(15, ' '),
                                         time.strftime('%Y-%m-%d %H:%M', time.localtime()).center(20, ' '),))
 
 
