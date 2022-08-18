@@ -22,7 +22,7 @@ def dcm2nii(path_read, path_save):
     series_reader.SetFileNames(series_file_names)
     image3d = series_reader.Execute()
     sitk.WriteImage(image3d, path_save)
-
+# dcm2nii()
 
 # dcm 转 nii
 def dcm2nii_folder():
@@ -31,7 +31,7 @@ def dcm2nii_folder():
         new_name = ori_name[0].upper() + str(new_name).zfill(3)
 
         dcm2nii(os.path.join(ori_path, ori_name), os.path.join(os.path.join(save_path, ori_name[0]), new_name + '.nii'))
-
+# dcm2nii_folder()
 
 # mask 重命名
 def rename(path):
@@ -42,7 +42,14 @@ def rename(path):
         new_name = new_cut1 + '_' + cut2
         print('trans ', os.path.join(path, ori_name), ' to ', os.path.join(path, new_name))
         os.rename(os.path.join(path, ori_name), os.path.join(path, new_name))
+# rename(r'D:\prostatic\Primary-data\RT-P')
 
+def rename_folder(path):
+    for ori_name in os.listdir(path):
+        new_name = ori_name[0].upper() + str(ori_name[1:]).zfill(3)
+        print('trans ', os.path.join(path, ori_name), ' to ', os.path.join(path, new_name))
+        os.rename(os.path.join(path, ori_name), os.path.join(path, new_name))
+# rename_folder(r'D:\prostatic\Primary-data\YT')
 
 raw = r'D:\nii-Primary-data\RAW-DATA\A'
 mask = r'D:\nii-Primary-data\MASK-DATA\RA-C'

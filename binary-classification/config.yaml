@@ -5,7 +5,8 @@ object:
     series: T
 
 classifier:
-    filter: LASSO,RFE
+    filter: LASSO,RFE,PCA
+#    filter: PCA
     model: KNN,SVM,Bayes,RF
     RFE_based: LR,SVM
 

@@ -17,7 +17,7 @@ from sklearn.linear_model import LassoCV, LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.utils import shuffle
-from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split, StratifiedKFold
+from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split, StratifiedKFold, RandomizedSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler, scale, normalize, label_binarize
 from sklearn.metrics import roc_curve, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
@@ -260,10 +260,10 @@ def classify(clf, data):
         classifier = RandomForestClassifier(n_jobs=-1)
 
         parameters_grid = {
-            'n_estimators': [int(x) for x in np.arange(1, 200, 10)],
-            'max_depth': [3, 4, 5, 6, 7, 8],
-            'max_features': ["auto", "sqat", "log2"],
-            'class_weight': [None, "balanced"]
+            'n_estimators': [int(x) for x in np.arange(30, 50)],
+            # 'max_depth': [3, 4, 5, 6, 7, 8],
+            # 'max_features': ["auto", "sqat", "log2"],
+            # 'class_weight': [None, "balanced"]
         }
 
 
@@ -271,8 +271,8 @@ def classify(clf, data):
         classifier = KNeighborsClassifier(n_jobs=-1)
 
         parameters_grid = {
-            "n_neighbors": np.arange(2, 31),
-            "leaf_size": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+            # "n_neighbors":  [int(x) for x in np.arange(5, 20)],
+            "leaf_size": [int(x) for x in np.arange(1, 10)]
         }
 
 
@@ -280,9 +280,7 @@ def classify(clf, data):
         classifier = LogisticRegression(n_jobs=-1)
 
         parameters_grid = {
-            "penalty": ['l1', 'l2'],
-            "C": [0.01, 0.1, 1.0, 10, 100],
-            "class_weight": [None, 'balanced']
+            "C": [int(x) for x in np.arange(1, 20)],
         }
 
 
@@ -290,8 +288,9 @@ def classify(clf, data):
         classifier = SVC(probability=True, gamma='auto')
 
         parameters_grid = {
-            "kernel": ['linear', 'rbf', 'poly'],
-            "C": [0.0001, 0.001, 0.01, 0.5, 0.1, 1, 5, 10, 100]
+            # "kernel": ['linear', 'rbf', 'poly'],
+            # "C": [0.0001, 0.001, 0.01, 0.5, 0.1, 1, 5, 10, 100]
+            "C": [0.5, 0.6 , 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
         }
 
 
@@ -307,18 +306,22 @@ def classify(clf, data):
         grid_search = GridSearchCV(estimator=classifier,
                                    param_grid=parameters_grid,
                                    cv=kflod,
-                                   scoring='accuracy',  # tp+tn / tp+tn+fp+fn
+                                   scoring='accuracy'  # tp+tn / tp+tn+fp+fn
                                    # Positive and Negative are both important
                                    )
+        # grid_search = RandomizedSearchCV(estimator=classifier,
+        #                                  param_distributions=parameters_grid,
+        #                                  n_iter=30)
         grid_result = grid_search.fit(x_train, y_train)
         print('Best ' + model + ' Train Score: %.4f using %s' % (grid_result.best_score_, grid_search.best_params_))
         print('Best ' + model + ' Model: ', grid_search.best_estimator_)
-        pre_score = grid_search.best_estimator_.predict_proba(x_test)
+        pre_proba = grid_search.best_estimator_.predict_proba(x_test)
         pre = grid_result.best_estimator_.predict(x_test)
         # print(x_test)
+        print(pre_proba)
         print(y_test)
-        # print(pre_proba)
         print(pre)
+        print(grid_result.best_estimator_.score(x_test, y_test))
         accuracy, precision, recall, f1 = accuracy_score(y_test, pre), \
                                           precision_score(y_test, pre), \
                                           recall_score(y_test, pre), \
