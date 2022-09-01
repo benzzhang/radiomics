@@ -1,0 +1,19 @@
+setting:
+  binWidth: 15
+  label: 1
+  geometryTolerance: 10
+
+imageType:
+  Original: {}
+  Wavelet: {}
+  LoG:
+    sigma: [0.5, 1.0, 2.0, 3.0, 4.0]
+
+featureClass:
+  shape:
+  firstorder:
+  glcm:
+  glrlm:
+  glszm:
+  gldm:
+  ngtdm:

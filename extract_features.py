@@ -5,10 +5,10 @@ import SimpleITK as sitk
 import pandas as pd
 import csv
 
-ori_path = r'D:\prostate\Primary-data\YA'
+ori_path = r'D:\prostatic\Primary-data\YT'
 mask_path = r'D:\prostate\nii-Primary-data\MASK-DATA\RT-P'
 
-save_path = r'D:\prostate\nii-Primary-data'
+save_path = r'D:\nii-Primary-data'
 
 
 # path_read:读取dicom的文件路径  path_save:保存nii的文件路径
@@ -52,27 +52,27 @@ def rename_folder(path):
 # rename_folder(r'D:\prostatic\Primary-data\YT')
 
 raw = r'D:\nii-Primary-data\RAW-DATA\A'
-mask = r'D:\nii-Primary-data\MASK-DATA\RA-C'
+mask = r'D:\nii-Primary-data\MASK-DATA\RA-P'
 save = r'D:\nii-Primary-data\features'
 
 def extract_features(raw_path, mask_path, save_path):
     all_data = pd.DataFrame()
 
-    for raw, mask in zip((os.listdir(raw_path)), (os.listdir(mask_path))):
+    for raw, mask in zip(os.listdir(raw_path), os.listdir(mask_path)):
         print(raw, mask)
-        raw_ = os.path.join(raw_path, raw)
-        mask_ = os.path.join(mask_path, mask)
+        raw_ = sitk.ReadImage(os.path.join(raw_path, raw))
+        mask_ = sitk.ReadImage(os.path.join(mask_path, mask))
 
-        config = './Params1.yaml'
+        config = './Params.yaml'
         extractor = featureextractor.RadiomicsFeatureExtractor(config)
         featureVector = extractor.execute(raw_, mask_)
         # print(featureVector.values())
         data = pd.DataFrame.from_dict(featureVector.values()).T
         data.columns = featureVector.keys()
-        data.index = [raw_.split('\\')[-1].split('.')[0]]
+        data.index = [raw.split('.')[0]]
 
         all_data = pd.concat([all_data, data])
-    all_data.to_csv(os.path.join(save_path, mask_path.split('\\')[-1]+'2.csv'))
+    all_data.to_csv(os.path.join(save_path, mask_path.split('\\')[-1]+'.csv'))
 
 
 def label_out(mask_path):
@@ -89,17 +89,21 @@ def label_out(mask_path):
 # label_out(mask_path)
 # extract_features(raw, mask, save)
 
-# itk_img = sitk.ReadImage(r'D:\nii-Primary-data\RAW-DATA\A\A157.nii')
-# img_array = sitk.GetArrayFromImage(itk_img) # indexes are z,y,x (notice the ordering)
-# num_z, height, width = img_array.shape        #heightXwidth constitute the transverse plane
-# origin = np.array(itk_img.GetOrigin())      # x,y,z  Origin in world coordinates (mm)
-# spacing = np.array(itk_img.GetSpacing())
-# print(num_z, height, width)
-# print(spacing)
-# itk_img = sitk.ReadImage(r'D:\nii-Primary-data\MASK-DATA\RA-C2\A157_MergeExternalPlus1Shrink2.nii')
-# img_array = sitk.GetArrayFromImage(itk_img) # indexes are z,y,x (notice the ordering)
-# num_z, height, width = img_array.shape        #heightXwidth constitute the transverse plane
-# origin = np.array(itk_img.GetOrigin())      # x,y,z  Origin in world coordinates (mm)
-# spacing = np.array(itk_img.GetSpacing())
-# print(num_z, height, width)
-# print(spacing)
+def size_set():
+    path = r'D:\nii-Primary-data\RAW-DATA\D'
+    set1 = set()
+    set2 = set()
+    for i in os.listdir(path):
+        itk_img = sitk.ReadImage(os.path.join(path, i))
+        img_array = sitk.GetArrayFromImage(itk_img) # indexes are z,y,x (notice the ordering)
+        num_z, height, width = img_array.shape        #heightXwidth constitute the transverse plane
+        origin = np.array(itk_img.GetOrigin())      # x,y,z  Origin in world coordinates (mm)
+        spacing = np.array(itk_img.GetSpacing())
+        print(height, width)
+        set1.add(height)
+        set2.add(width)
+        # print(spacing)
+    print(set1)
+    print(set2)
+
+size_set()
