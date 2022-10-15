@@ -1,3 +1,5 @@
 *.csv
 *.docx
 .idea
+MASK-DATA
+RAW-DATA

@@ -7,7 +7,6 @@ import csv
 
 ori_path = r'D:\prostatic\Primary-data\YT'
 mask_path = r'D:\prostate\nii-Primary-data\MASK-DATA\RT-P'
-
 save_path = r'D:\nii-Primary-data'
 
 
@@ -51,9 +50,10 @@ def rename_folder(path):
         os.rename(os.path.join(path, ori_name), os.path.join(path, new_name))
 # rename_folder(r'D:\prostatic\Primary-data\YT')
 
-raw = r'D:\nii-Primary-data\RAW-DATA\A'
-mask = r'D:\nii-Primary-data\MASK-DATA\RA-P'
-save = r'D:\nii-Primary-data\features'
+# line 53-76 为提取特征代码; 修改 raw mask 参数地址调整提取序列; 生成csv后需要手动添加一列标签
+raw = './RAW-DATA/T'
+mask = './merge_T2_CP'
+save = './merge_features'
 
 def extract_features(raw_path, mask_path, save_path):
     all_data = pd.DataFrame()
@@ -72,11 +72,12 @@ def extract_features(raw_path, mask_path, save_path):
         data.index = [raw.split('.')[0]]
 
         all_data = pd.concat([all_data, data])
-    all_data.to_csv(os.path.join(save_path, mask_path.split('\\')[-1]+'.csv'))
+    all_data.to_csv(os.path.join(save_path, mask_path[2:]+'.csv'))
+# extract_features(raw, mask, save)
 
-
+# 校正标签顺序; 从001-999
 def label_out(mask_path):
-    features_data = pd.read_csv(os.path.join(r'./data2', mask_path.split('\\')[-1] + '.csv'))
+    features_data = pd.read_csv(os.path.join('./data2', mask_path))
     label = features_data.iloc[:, 0:2]
     for i in range(len(label['ID'])):
         label['ID'][i] = label['ID'][i][0].upper() + str(label['ID'][i][1:]).zfill(3)
@@ -85,9 +86,8 @@ def label_out(mask_path):
     features_data.iloc[:, 0:2] = label
     print(features_data)
     label.to_csv('correct.csv')
+label_out('RT-C.csv')
 
-# label_out(mask_path)
-# extract_features(raw, mask, save)
 
 def size_set():
     path = r'D:\nii-Primary-data\RAW-DATA\D'
@@ -105,5 +105,4 @@ def size_set():
         # print(spacing)
     print(set1)
     print(set2)
-
-size_set()
+# size_set()
