@@ -86,7 +86,7 @@ def label_out(mask_path):
     features_data.iloc[:, 0:2] = label
     print(features_data)
     label.to_csv('correct.csv')
-label_out('RT-C.csv')
+# label_out('RT-C.csv')
 
 
 def size_set():
