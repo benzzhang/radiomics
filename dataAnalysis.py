@@ -3,15 +3,18 @@
 @Init Date  : 2022-10-26 17:03
 @File       : dataAnalysis.py
 @IDE        : PyCharm
-@Description: For 'ROC Curve' & 'Delong Test'
+@Description: For 'ROC Curve' & 'Delong Test' & 'HeatMap'
 '''
 
+import pandas as pd
 import sklearn.metrics as metrics
 from sklearn.metrics import auc
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import numpy as np
 import scipy.stats as st
+import seaborn as sns
+import xlrd
 
 # color_map: Referenced from https://blog.csdn.net/Bit_Coders/article/details/121383126
 def RGB_to_Hex(rgb):
@@ -54,13 +57,18 @@ def generate_colors(N=7, colormap='hsv'):
         hex_list.append(RGB_to_Hex(rgb))
     return rgb_list,hex_list
 
-def config_show(type):
+def config_show(type, exp):
     plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像
     plt.ylim([-0.05, 1.05])
     font1 = {'size':10}
-    plt.xlabel('False Positive Rate',font1)
-    plt.ylabel('True Positive Rate',font1)
-    plt.title('ROC Curve')
+    if type=='ROC':
+        plt.xlabel('False Positive Rate',font1)
+        plt.ylabel('True Positive Rate',font1)
+        plt.title('ROC Curve')
+    elif type=='PR':
+        plt.xlabel('Recall',font1)
+        plt.ylabel('Precision',font1)
+        plt.title('PR Curve')
     plt.legend(loc="lower right")
     ax = plt.gca()
     ax.spines['bottom'].set_linewidth(1.5)
@@ -69,7 +77,9 @@ def config_show(type):
     ax.spines['top'].set_color('gray')
     plt.rcParams['savefig.dpi'] = 300
     plt.rcParams['figure.dpi'] = 300
-    plt.savefig('./dataAnalysis/ROC_{}.tiff'.format(type))
+    plt.savefig('./dataAnalysis/{}_{}.tiff'.format(type, exp))
+    plt.show()
+
 # Delong Test: Referenced from https://blog.csdn.net/weixin_42404713/article/details/120146245
 class DelongTest():
     def __init__(self, preds1, preds2, label, threshold=0.05):
@@ -150,7 +160,7 @@ if __name__ == '__main__':
     # 保存实验结果的.txt
     results = 'best_CMP.txt'
     #--------------Prepare Data for drawing--------------#
-    seriesWithROI = []
+    seriesWithROI, AUCs = [], []
     label_train, preds_train, label_test, preds_test = [], [], [], []
 
     with open(results, 'r') as f:
@@ -158,6 +168,8 @@ if __name__ == '__main__':
             line = f.readline()
             if i%21 == 0:
                 seriesWithROI.append(line.strip())
+            if i%21 == 19:
+                AUCs.append(line.strip())
             if i%21 == 2:
                 label_train.append(line.strip())
             if i%21 == 4:
@@ -180,16 +192,36 @@ if __name__ == '__main__':
     #     fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
     #     plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
     # plt.plot([0, 1], [0, 1], '--',color='#000000', lw=1)
-    # config_show('Train_'+ results.split('.')[0])
+    # config_show('ROC', 'Train_'+ results.split('.')[0])
 
+    # plt.cla()
     for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_test, preds_test):
         labelList = [int(i) for i in label.split(' ')]
         predList = [float(i) for i in pred.split(' ')]
         fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
         plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
     plt.plot([0, 1], [0, 1], '--',color='#000000', lw=1)
-    config_show('Test_'+ results.split('.')[0])
+    config_show('ROC', 'Test_'+ results.split('.')[0])
     #--------------Draw ROC in Train&Test--------------#
+
+    #--------------Draw PR in Train&Test--------------#
+
+    # plt.cla()
+    # for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_train, preds_train):
+    #     labelList = [int(i) for i in label.split(' ')]
+    #     predList = [float(i) for i in pred.split(' ')]
+    #     fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
+    #     plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
+    # config_show('PR', 'Train_'+ results.split('.')[0])
+
+    # plt.cla()
+    for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_test, preds_test):
+        labelList = [int(i) for i in label.split(' ')]
+        predList = [float(i) for i in pred.split(' ')]
+        precision, recall, threshold = metrics.precision_recall_curve(labelList, predList)
+        plt.plot(precision, recall, '--', color=color, label='{}'.format(roiName), lw=2)
+    config_show('PR', 'Test_'+ results.split('.')[0])
+    #--------------Draw PR in Train&Test--------------#
 
     #--------------form .txt--------------#
     label_each = [int(i) for i in label_test[0].split(' ')]
@@ -225,3 +257,37 @@ if __name__ == '__main__':
             print(roiNames_each[i]+' vs. '+roiNames_each[j])
             DelongTest(preds_each[i], preds_each[j], label_each, threshold=0.05)
     #--------------Delong Test--------------#
+
+    #--------------HeatMap--------------#
+
+    book = xlrd.open_workbook('二分类test.xls')
+    sheet1 = book.sheet_by_index(0)
+    rois = []
+    series =[]
+    aucs = []
+    for row in range(sheet1.nrows):
+        for col in range(sheet1.ncols):
+            if row==0 and col>0:
+                x = sheet1.cell(row, col).value.strip()
+                if x != '':
+                    rois.append(x)
+            if col==0 and row>1:
+                x = sheet1.cell(row, col).value.strip()
+                if x != '':
+                    series.append(x)
+            if row>1 and (col==5 or col==10 or col==15):
+                x = sheet1.cell(row, col).value
+                if x != '':
+                    aucs.append(x)
+
+    auc = np.array(aucs).reshape(len(series), len(rois)) / 100  # list转array
+
+    # plt.cla()
+    sns.set()
+    df = pd.DataFrame(auc, index=series , columns=rois)
+    df.head()
+    sns.heatmap(df, annot=True, cmap='YlGnBu')
+    plt.tight_layout()
+    plt.savefig('./dataAnalysis/HeatMap.tiff')
+    plt.show()
+    #--------------HeatMap--------------#
