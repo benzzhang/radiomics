@@ -77,7 +77,7 @@ def extract_features(raw_path, mask_path, save_path):
 
 # 校正标签顺序; 从001-999
 def label_out(mask_path):
-    features_data = pd.read_csv(os.path.join('./data2', mask_path))
+    features_data = pd.read_csv(os.path.join('./', mask_path))
     label = features_data.iloc[:, 0:2]
     for i in range(len(label['ID'])):
         label['ID'][i] = label['ID'][i][0].upper() + str(label['ID'][i][1:]).zfill(3)
