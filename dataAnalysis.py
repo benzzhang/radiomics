@@ -8,7 +8,7 @@
 
 import pandas as pd
 import sklearn.metrics as metrics
-from sklearn.metrics import auc
+from sklearn.metrics import auc, roc_auc_score
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler, label_binarize
 from sklearn.decomposition import PCA
@@ -20,6 +20,7 @@ import seaborn as sns
 import xlrd
 import os
 import csv
+import random
 
 
 def featurs_deal(csv_file):
@@ -268,6 +269,7 @@ if __name__ == '__main__':
                 preds_test.append(line.strip())
 
     color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'hsv')
+    color_map_HEX = ['#CC3300', '#00CC33', '#3300CC']
     print('color_map:', color_map_HEX)
     #color_map_HEX = ['#00CCFF', '#CC9900', '#CC0066']
     # --------------Prepare Data for drawing--------------#
@@ -285,6 +287,26 @@ if __name__ == '__main__':
     for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_test, preds_test):
         labelList = [int(i) for i in label.split(' ')]
         predList = [float(i) for i in pred.split(' ')]
+
+        # 抽样1000次计算CI
+        labelList_CI = []
+        predList_CI = []
+        auc_values = []
+        idx_list = list(np.arange(len(labelList)))
+        for i in np.arange(1000):
+            idx = random.sample(idx_list, int(len(labelList)*0.7))
+            idx = list(idx)
+            for j in idx:
+                labelList_CI.append(labelList[j])
+                predList_CI.append(predList[j])
+            labelArray = np.array(labelList_CI)
+            predArray = np.array(predList_CI)
+            roc_auc = roc_auc_score(labelArray, predArray)
+            auc_values.append(roc_auc)
+        CI_95 = np.percentile(auc_values, (2.5, 97.5))
+        print("'95%CI' in {}: {}".format(roiName, CI_95))
+
+        # 计算FPR、TPR, 作图
         fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
         plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
     plt.plot([0, 1], [0, 1], '--', color='#000000', lw=1)
