@@ -211,16 +211,12 @@ class DelongTest():
         auc_B = self._auc(X_B, Y_B)
 
         # Compute entries of covariance matrix S (covar_AB = covar_BA)
-        var_A = (self._get_S_entry(V_A10, V_A10, auc_A, auc_A) * 1 / len(V_A10) + self._get_S_entry(V_A01, V_A01, auc_A,
-                                                                                                    auc_A) * 1 / len(
-            V_A01))
-        var_B = (self._get_S_entry(V_B10, V_B10, auc_B, auc_B) * 1 / len(V_B10) + self._get_S_entry(V_B01, V_B01, auc_B,
-                                                                                                    auc_B) * 1 / len(
-            V_B01))
-        covar_AB = (self._get_S_entry(V_A10, V_B10, auc_A, auc_B) * 1 / len(V_A10) + self._get_S_entry(V_A01, V_B01,
-                                                                                                       auc_A,
-                                                                                                       auc_B) * 1 / len(
-            V_A01))
+        var_A = (self._get_S_entry(V_A10, V_A10, auc_A, auc_A) * 1 / len(V_A10) +
+                 self._get_S_entry(V_A01, V_A01, auc_A,auc_A) * 1 / len(V_A01))
+        var_B = (self._get_S_entry(V_B10, V_B10, auc_B, auc_B) * 1 / len(V_B10) +
+                 self._get_S_entry(V_B01, V_B01, auc_B,auc_B) * 1 / len(V_B01))
+        covar_AB = (self._get_S_entry(V_A10, V_B10, auc_A, auc_B) * 1 / len(V_A10) +
+                    self._get_S_entry(V_A01, V_B01,auc_A,auc_B) * 1 / len(V_A01))
 
         # Two tailed test
         z = self._z_score(var_A, var_B, covar_AB, auc_A, auc_B)
