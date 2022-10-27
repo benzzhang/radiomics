@@ -8,7 +8,7 @@ classifier:
     # SVM, RF, Bayes, KNN, LR
     model: RF
     # PCA / LASSO / RFE
-    filter: RFE
+    filter: PCA
     # LR, SVM
     RFE_based: SVM
 

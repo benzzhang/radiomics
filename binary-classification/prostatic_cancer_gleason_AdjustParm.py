@@ -230,7 +230,7 @@ def features_reduction(clf, data):
     f, ax = plt.subplots(figsize=(11, 9))
     sns.heatmap(corr_matrix, cmap="YlOrRd", square=True, ax=ax)
     f.tight_layout()
-    plt.savefig("correlation_matrix.png", dpi=800)
+    plt.savefig("correlation_matrix.png", dpi=300)
 
     print('features nums after dimensionality reduction:', x_train.shape[1])
 
