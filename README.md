@@ -10,7 +10,7 @@ binary classify using ML model (TODO: or DL model)
 │  dataAnalysis.py
 │  experiment-CMP-2-with_NPV.txt
 │  experiment-CMP-2. '二分类实验结果汇总'
-│  important_features_20.csv '最重要前20特征表'
+│  important_features_20.csv '最重要前20特征表, 用以R绘corr图'
 │  important_features_50.csv
 │  M.txt ' "M"ROI的所有实验结果 '
 │  P.txt ' "P"ROI的所有实验结果 '
