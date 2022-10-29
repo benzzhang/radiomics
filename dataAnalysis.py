@@ -3,12 +3,12 @@
 @Init Date  : 2022-10-26 17:03
 @File       : dataAnalysis.py
 @IDE        : PyCharm
-@Description: For 'ROC Curve' & 'Delong Test' & 'HeatMap'
+@Description: 作图 'ROC Curve' & 'PR Curve', 所有模型AUC的'HeatMap', 显著性分析'Delong Test',
 '''
 
 import pandas as pd
 import sklearn.metrics as metrics
-from sklearn.metrics import auc, roc_auc_score
+from sklearn.metrics import auc, roc_auc_score, average_precision_score
 from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler, label_binarize
 from sklearn.decomposition import PCA
@@ -137,11 +137,12 @@ def generate_colors(N=7, colormap='hsv'):
     return rgb_list, hex_list
 
 
-def config_show(type, exp):
-    plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像
-    plt.ylim([-0.05, 1.05])
+def config_show(type, exp, loc):
+
     font1 = {'size': 10}
     if type == 'ROC':
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像
+        plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate', font1)
         plt.ylabel('True Positive Rate', font1)
         plt.title('ROC Curve')
@@ -149,7 +150,7 @@ def config_show(type, exp):
         plt.xlabel('Recall', font1)
         plt.ylabel('Precision', font1)
         plt.title('PR Curve')
-    plt.legend(loc="lower right")
+    plt.legend(loc=loc)
     ax = plt.gca()
     ax.spines['bottom'].set_linewidth(1.5)
     ax.spines['left'].set_linewidth(1.5)
@@ -242,7 +243,9 @@ if __name__ == '__main__':
     rcParams.update(config)
 
     # 保存实验结果的.txt
-    results = 'best_CMP.txt'
+    # './C.txt' './M.txt' './P.txt' './best_in_CMP.txt'
+    results = './best_CMP.txt'
+
     # --------------Prepare Data for drawing--------------#
     seriesWithROI, AUCs = [], []
     label_train, preds_train, label_test, preds_test = [], [], [], []
@@ -264,21 +267,24 @@ if __name__ == '__main__':
             if i % 21 == 14:
                 preds_test.append(line.strip())
 
-    color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'hsv')
-    color_map_HEX = ['#CC3300', '#00CC33', '#3300CC']
+    # 'hsv', 'nipy_spectral', 'gist_ncar'
+    color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'jet')
+    # color_map_HEX = ['#CC3300', '#00CC33', '#3300CC']
     print('color_map:', color_map_HEX)
     #color_map_HEX = ['#00CCFF', '#CC9900', '#CC0066']
     # --------------Prepare Data for drawing--------------#
 
+    # 画布尺寸
+    plt.rcParams['figure.figsize'] = (10, 7)
     # --------------Draw ROC in Train&Test--------------#
 
     # for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_train, preds_train):
     #     labelList = [int(i) for i in label.split(' ')]
     #     predList = [float(i) for i in pred.split(' ')]
-    #     fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
+    #     fpr, tpr, threshold = metrics.roc_curve(np.array(labelList), np.array(predList))
     #     plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
-    # plt.plot([0, 1], [0, 1], '--',color='#000000', lw=1)
-    # config_show('ROC', 'Train_'+ results.split('.')[0])
+    # plt.plot([0, 1], [0, 1], '--',color='#949494', lw=1)
+    # config_show('ROC', 'Train_'+ results.split('.')[-2][1:], loc="lower right")
 
     for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_test, preds_test):
         labelList = [int(i) for i in label.split(' ')]
@@ -300,13 +306,16 @@ if __name__ == '__main__':
             roc_auc = roc_auc_score(labelArray, predArray)
             auc_values.append(roc_auc)
         CI_95 = np.percentile(auc_values, (2.5, 97.5))
-        print("'95%CI' in {}: {}".format(roiName, CI_95))
 
-        # 计算FPR、TPR, 作图
-        fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
+        # 计算FPR、TPR, 输出AUC(95%CI), 作图
+        fpr, tpr, threshold = metrics.roc_curve(np.array(labelList), np.array(predList))
+        print("'95%CI' in {}: {}-{}".format(roiName,
+                                            round(auc(fpr, tpr), 4),
+                                            (round(CI_95[0], 4), round(CI_95[1], 4))))
+        print('*----------------------------------')
         plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
-    plt.plot([0, 1], [0, 1], '--', color='#000000', lw=1)
-    config_show('ROC', 'Test_' + results.split('.')[0])
+    plt.plot([0, 1], [0, 1], '--', color='#949494', lw=1)
+    config_show('ROC', 'Test_' + results.split('.')[-2][1:], loc="lower right")
     # --------------Draw ROC in Train&Test--------------#
 
     # --------------Draw PR in Train&Test--------------#
@@ -314,16 +323,22 @@ if __name__ == '__main__':
     # for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_train, preds_train):
     #     labelList = [int(i) for i in label.split(' ')]
     #     predList = [float(i) for i in pred.split(' ')]
-    #     fpr, tpr, threshold = metrics.roc_curve(labelList, predList)
+    #     fpr, tpr, threshold = metrics.roc_curve(np.array(labelList), np.array(predList))
     #     plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
-    # config_show('PR', 'Train_'+ results.split('.')[0])
+    # config_show('PR', 'Train_'+ results.split('.')[-2][1:], loc='best')
 
     for roiName, color, label, pred in zip(seriesWithROI, color_map_HEX, label_test, preds_test):
         labelList = [int(i) for i in label.split(' ')]
         predList = [float(i) for i in pred.split(' ')]
-        precision, recall, threshold = metrics.precision_recall_curve(labelList, predList)
-        plt.plot(precision, recall, '--', color=color, label='{}'.format(roiName), lw=2)
-    config_show('PR', 'Test_' + results.split('.')[0])
+        precision, recall, threshold = metrics.precision_recall_curve(np.array(labelList), np.array(predList))
+        # plt.plot(recall ,precision, '--', color=color, label='{}'.format(roiName), lw=2)
+        # 显示AP用下面这个
+        plt.plot(recall ,precision, '--', color=color,
+                 label='{}(AP = {:.2f})'.format(roiName,
+                                                average_precision_score(np.array(labelList),
+                                                                        np.array(predList))), lw=2)
+
+    config_show('PR', 'Test_' + results.split('.')[-2][1:], loc='best')
     # --------------Draw PR in Train&Test--------------#
 
     # --------------form .txt--------------#
@@ -362,8 +377,9 @@ if __name__ == '__main__':
     # --------------Delong Test--------------#
 
     # --------------HeatMap--------------#
-
-    book = xlrd.open_workbook('二分类test.xls')
+    # 恢复默认画布尺寸
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    book = xlrd.open_workbook('各序列各ROI指标总表.xls')
     sheet1 = book.sheet_by_index(0)
     rois = []
     series = []
@@ -418,44 +434,3 @@ if __name__ == '__main__':
     # plt.savefig('./dataAnalysis/HeatMap_PRE.tiff')
     # plt.show()
     # --------------HeatMap--------------#
-
-    # --------------correlation_matrix--------------#
-    # 原始特征的相关性矩阵，及降维后的特征的相关性矩阵
-    import warnings
-    warnings.filterwarnings('ignore')
-
-    modality = 'T'
-    roi = 'P'
-
-    csv_file = 'R' + modality + '-' + roi + '.csv'
-    x_train, y_train, x_test, y_test = featurs_deal(os.path.join('./data2', csv_file))
-    pca = PCA(n_components=0.99)
-    pca.fit(x_train)
-    x_train_pca = pca.transform(x_train)
-    print(x_train)
-    print(type(x_train))
-    x_train_df = pd.DataFrame(x_train)
-    corr_matrix = x_train_df.corr(method='spearman').abs()
-    x_train_df_pca = pd.DataFrame(x_train_pca)
-    corr_matrix2 = x_train_df_pca.corr(method='spearman').abs()
-
-    print(x_train.index)
-    print(x_train.columns)
-    # 特征转置后写入 .xls 用以R作图
-    x_train_T = pd.DataFrame(x_train.values.T, columns=x_train.index, index=x_train.columns)
-    x_train.unstack().to_csv('./ori_features.csv')
-
-    sns.set(font_scale=1.0)
-    f, ax = plt.subplots(figsize=(11, 9))
-    sns.heatmap(corr_matrix, cmap="Blues", square=True, xticklabels=False, yticklabels=False,)
-    plt.tight_layout()
-    plt.savefig("./dataAnalysis/correlation_matrix.tiff")
-    plt.show()
-
-    sns.set(font_scale=1.0)
-    f, ax = plt.subplots(figsize=(11, 9))
-    sns.heatmap(corr_matrix2, cmap="YlOrRd", square=True, ax=ax)
-    plt.tight_layout()
-    plt.savefig("./dataAnalysis/correlation_matrix2.tiff")
-    plt.show()
-    # --------------correlation_matrix--------------#

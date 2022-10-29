@@ -1,5 +1,7 @@
 # radiomics
-classify using ML model or DL model
+classify using ML model (TODO: or DL model)
+
+#
 
 ##folder
   - 'binary-classification': code and .yaml in binary classification task

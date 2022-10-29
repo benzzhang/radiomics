@@ -1,5 +1,5 @@
-*.csv
-*.docx
 .idea
-MASK-DATA/
-RAW-DATA/
+*.nii
+*.nrrd
+*.csv
+*.xls
