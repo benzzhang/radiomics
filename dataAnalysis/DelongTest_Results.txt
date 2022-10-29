@@ -1,0 +1,15 @@
+*----------------------------------------------------------
+T2WI+DWI-C vs. T2WI+ADC+DWI-M
+z score = 0.03251;
+p value = 0.97407;
+There is NO significant difference
+*----------------------------------------------------------
+T2WI+DWI-C vs. T2WI+ADC+DWI-P
+z score = -0.87448;
+p value = 0.38186;
+There is NO significant difference
+*----------------------------------------------------------
+T2WI+ADC+DWI-M vs. T2WI+ADC+DWI-P
+z score = -0.70066;
+p value = 0.48352;
+There is NO significant difference
