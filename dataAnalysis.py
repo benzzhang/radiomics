@@ -23,77 +23,6 @@ import csv
 import random
 
 
-def featurs_deal(csv_file):
-    seed = 42
-    print('\nreading data from ', csv_file)
-
-    data_ori = pd.read_csv(csv_file)
-    header_row = next(csv.reader(open(csv_file)))
-    str_idx = []
-    # find the columns index where the type of cell is 'string'
-    for idx, i in enumerate(data_ori.iloc[1, :]):
-        if isinstance(i, str):
-            str_idx.append(idx)
-
-    data = data_ori
-    for i in str_idx:
-        data = data.drop(columns=[header_row[i]])
-
-    # the number of low and high level cases are A and B
-    # make 'low:high' in testset to be 1:1
-    # make train:test to be 7:3
-    # (59-26):(116-26) = 33:90 in trainset,
-    # 26:26 in trainset.
-
-    data_L = data[:][data['Label'] == 1]
-    data_H = data[:][data['Label'] == 2]
-
-    # shuffle
-    data_L = data_L.sample(frac=1.0, random_state=seed)
-    data_H = data_H.sample(frac=1.0, random_state=seed)
-
-    data_train_L = data_L.iloc[:33, :]
-    data_train_H = data_H.iloc[:90, :]
-
-    data_test_L = data_L.iloc[33:, :]
-    data_test_H = data_H.iloc[90:, :]
-
-    # concat LABEL1 and LABEL2
-    data_train = pd.concat([data_train_L, data_train_H])
-    data_train = shuffle(data_train, random_state=seed)
-    x_train = data_train[data_train.columns[1:]]
-
-
-    data_test = pd.concat([data_test_L, data_test_H])
-    data_test = shuffle(data_test, random_state=seed)
-    x_test = data_test[data_test.columns[1:]]
-
-    # keep columns-name and normalize
-    columns = x_train.columns
-    scaler = StandardScaler()
-    x_train = scaler.fit_transform(x_train)
-    x_test = scaler.transform(x_test)
-
-    x_train = pd.DataFrame(x_train, columns=columns)
-    x_test = pd.DataFrame(x_test, columns=columns)
-    y_train = data_train['Label']
-    y_test = data_test['Label']
-
-    # 原本标签1&2 变成[0]&[1]
-    y_train = label_binarize(y_train, classes=[1, 2])
-    y_train = y_train.ravel()
-    y_test = label_binarize(y_test, classes=[1, 2])
-    y_test = y_test.ravel()
-
-    print('original features nums:', x_train.shape[1])
-    # drop columns include 'NaN'
-    is_NaN = x_train.isnull().any()  # False - 无缺失值
-    if sum(is_NaN[is_NaN == True]) > 0:
-        x_train.fillna(x_train.mean(), inplace=True)
-        x_test.fillna(x_test.mean(), inplace=True)
-
-    return x_train, y_train, x_test, y_test
-
 # color_map: Referenced from https://blog.csdn.net/Bit_Coders/article/details/121383126
 def RGB_to_Hex(rgb):
     """
@@ -242,7 +171,7 @@ if __name__ == '__main__':
     }
     rcParams.update(config)
 
-    # 保存实验结果的.txt
+    # 保存实验结果的, 用以绘图和计算DelongTets的 .txt
     # './C.txt' './M.txt' './P.txt' './best_in_CMP.txt'
     results = './best_CMP.txt'
 
