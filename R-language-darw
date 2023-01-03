@@ -1,0 +1,8 @@
+install.packages('pROC')
+install.packages('ggplot2')
+library('pROC')
+library('ggplot2')
+data<-read.csv('D:/code-zhangjian/prostatic-cancer/important_features_20.csv', row.names = 'X')
+corr<-round(cor(data), 3)
+p.mat<-round(cor_pmat(data), 3)
+ggcorrplot(corr, hc.order = TRUE, ggtheme = theme_bw(), p.mat = p.mat, insig = 'blank', tl.cex = 10, type = 'upper', method = 'circle', lab = TRUE, lab_size = 2, outline.color = 'white', colors = c('#6D9EC1','white','#e46726'))

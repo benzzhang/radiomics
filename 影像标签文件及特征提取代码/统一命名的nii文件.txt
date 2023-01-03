@@ -4,5 +4,5 @@ A004 A014 A109 T168
 csv表格中其对应标签也已删除；
 
 标签文件夹 /MASK-DATA
-图像文件架 /RAW-DATA
+图像文件夹 /RAW-DATA
 提取的特征文件夹 /features

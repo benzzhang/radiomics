@@ -198,9 +198,9 @@ if __name__ == '__main__':
 
     # 'hsv', 'nipy_spectral', 'gist_ncar'
     color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'jet')
-    # color_map_HEX = ['#CC3300', '#00CC33', '#3300CC']
     print('color_map:', color_map_HEX)
-    #color_map_HEX = ['#00CCFF', '#CC9900', '#CC0066']
+    # 红蓝绿colormap
+    # color_map_HEX = ['#24e02a', '#369ee3', '#ff0000']
     # --------------Prepare Data for drawing--------------#
 
     # 画布尺寸
@@ -338,7 +338,7 @@ if __name__ == '__main__':
 
     sns.set()
     df_auc = pd.DataFrame(auc, index=series, columns=rois)
-    sns.heatmap(df_auc, vmin=.5, vmax=1, cmap=sns.color_palette("Blues"), robust=False,
+    sns.heatmap(df_auc, vmin=.5, vmax=1, cmap=sns.color_palette("Reds"), robust=False,
                 annot=True, fmt=".4f", annot_kws=None,
                 linewidths=.5, linecolor="white"
                 )
