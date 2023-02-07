@@ -12,12 +12,13 @@ save_path = r'D:\nii-Primary-data'
 
 # path_read:读取dicom的文件路径  path_save:保存nii的文件路径
 def dcm2nii(path_read, path_save):
-    # GetGDCMSeriesIDs读取序列号相同的dcm文件
-    series_id = sitk.ImageSeriesReader.GetGDCMSeriesIDs(path_read)
-    # GetGDCMSeriesFileNames读取序列号相同dcm文件的路径，series[0]代表第一个序列号对应的文件
-    series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(path_read, series_id[0])
-    print(len(series_file_names))
+    # # GetGDCMSeriesIDs读取序列号相同的dcm文件
+    # series_id = sitk.ImageSeriesReader.GetGDCMSeriesIDs(path_read)
+    # # GetGDCMSeriesFileNames读取序列号相同dcm文件的路径，series[0]代表第一个序列号对应的文件
+    # series_file_names = sitk.ImageSeriesReader.GetGDCMSeriesFileNames(path_read, series_id[0])
     series_reader = sitk.ImageSeriesReader()
+    series_file_names = series_reader.GetGDCMSeriesFileNames(path_read)
+    print(len(series_file_names))
     series_reader.SetFileNames(series_file_names)
     image3d = series_reader.Execute()
     sitk.WriteImage(image3d, path_save)
