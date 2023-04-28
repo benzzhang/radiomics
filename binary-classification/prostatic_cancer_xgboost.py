@@ -19,6 +19,7 @@ from matplotlib import rcParams
 
 def remove_str_data(data, header_row):
     str_idx = []
+    # .iloc[1,:] 索引为1的行
     for idx, i in enumerate(data.iloc[1, :]):
         if isinstance(i, str):
             str_idx.append(idx)

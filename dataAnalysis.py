@@ -79,7 +79,7 @@ def config_show(type, exp, loc):
         plt.xlabel('Recall', font1)
         plt.ylabel('Precision', font1)
         plt.title('PR Curve')
-    plt.legend(loc=loc)
+    plt.legend(prop={'size': 15}, loc=loc)
     ax = plt.gca()
     ax.spines['bottom'].set_linewidth(1.5)
     ax.spines['left'].set_linewidth(1.5)
@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     # 保存实验结果的, 用以绘图和计算DelongTets的 .txt
     # './C.txt' './M.txt' './P.txt' './best_in_CMP.txt'
-    results = './best_CMP.txt'
+    results = './TZPZ.txt'
 
     # --------------Prepare Data for drawing--------------#
     seriesWithROI, AUCs = [], []
@@ -197,10 +197,11 @@ if __name__ == '__main__':
                 preds_test.append(line.strip())
 
     # 'hsv', 'nipy_spectral', 'gist_ncar'
-    color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'jet')
-    print('color_map:', color_map_HEX)
-    # 红蓝绿colormap
+    # color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'jet')
+    # print('color_map:', color_map_HEX)
+    # 红蓝绿/红蓝绿黄colormap
     # color_map_HEX = ['#24e02a', '#369ee3', '#ff0000']
+    color_map_HEX = ['#24e02a', '#369ee3', '#ff0000', '#FF9F00']
     # --------------Prepare Data for drawing--------------#
 
     # 画布尺寸
