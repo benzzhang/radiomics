@@ -5,7 +5,7 @@
 @IDE        : PyCharm
 @Description: 根据mode_dict的组合进行train&test, 对最优模型的前nums个特征制图并输出到.csv作为后续R的相关性分析
 '''
-
+import numpy as np
 import pandas as pd
 import csv
 from sklearn.model_selection import train_test_split
@@ -147,32 +147,32 @@ if __name__ == '__main__':
     path12 = "../data2/merge_T2_CP.csv"
 
     mode_dict = {
-                 "T2WI-C": [path1],
-                 "T2WI-M": [path2],
+                 # "T2WI-C": [path1],
+                 # "T2WI-M": [path2],
                  "T2WI-P": [path3],
                  # "T2WI-C+P": [path12],
-                 "ADC-C": [path4],
-                 "ADC-M": [path5],
+                 # "ADC-C": [path4],
+                 # "ADC-M": [path5],
                  "ADC-P": [path6],
                  # "ADC-C+P": [path10],
-                 "DWI-C": [path7],
-                 "DWI-M": [path8],
+                 # "DWI-C": [path7],
+                 # "DWI-M": [path8],
                  "DWI-P": [path9],
                  # "DWI-C+P": [path11],
-                 "T2WI+DWI-C": [path1, path7],
-                 "T2WI+DWI-M": [path2, path8],
+                 # "T2WI+DWI-C": [path1, path7],
+                 # "T2WI+DWI-M": [path2, path8],
                  "T2WI+DWI-P": [path3, path9],
                  # "T2WI+DWI-C+P": [path12, path11],
-                 "ADC+DWI-C": [path4, path7],
-                 "ADC+DWI-M": [path5, path8],
+                 # "ADC+DWI-C": [path4, path7],
+                 # "ADC+DWI-M": [path5, path8],
                  "ADC+DWI-P": [path6, path9],
                  # "ADC+DWI-C+P": [path10, path11],
-                 "T2WI+ADC-C": [path1, path4],
-                 "T2WI+ADC-M": [path2, path5],
+                 # "T2WI+ADC-C": [path1, path4],
+                 # "T2WI+ADC-M": [path2, path5],
                  "T2WI+ADC-P": [path3, path6],
                  # "T2WI+ADC-C+P": [path12, path10],
-                 "T2WI+ADC+DWI-C": [path1, path4, path7],
-                 "T2WI+ADC+DWI-M": [path2, path5, path8],
+                 # "T2WI+ADC+DWI-C": [path1, path4, path7],
+                 # "T2WI+ADC+DWI-M": [path2, path5, path8],
                  "T2WI+ADC+DWI-P": [path3, path6, path9],
                  # "T2WI+ADC+DWI-C+P": [path12, path11, path10]
                  }
@@ -300,7 +300,8 @@ if __name__ == '__main__':
                     FN += 1
         NPV = TN / (TN+FN+1e-10)
 
-        with open('../experiment-CMP-2.txt', 'a+') as f:
+        # with open('../experiment-CMP-2.txt', 'a+') as f:
+        with open('../P3.txt', 'a+') as f:
             f.write(mode)
             f.write('\n')
             f.write('<train_data>\n')

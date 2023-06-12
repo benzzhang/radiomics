@@ -68,18 +68,21 @@ def generate_colors(N=7, colormap='hsv'):
 
 def config_show(type, exp, loc):
 
-    font1 = {'size': 10}
+    font1 = {'size': 30}
     if type == 'ROC':
-        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好的观察图像
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好地观察图像
         plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate', font1)
         plt.ylabel('True Positive Rate', font1)
-        plt.title('ROC Curve')
+        plt.title('ROC Curve', fontsize=30)
     elif type == 'PR':
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好地观察图像
+        plt.ylim([-0.05, 1.05])
         plt.xlabel('Recall', font1)
         plt.ylabel('Precision', font1)
-        plt.title('PR Curve')
-    plt.legend(prop={'size': 15}, loc=loc)
+        plt.title('PR Curve', fontsize=30)
+    plt.legend(prop={'size': 25}, loc=loc)
+    plt.tick_params(labelsize=25)
     ax = plt.gca()
     ax.spines['bottom'].set_linewidth(1.5)
     ax.spines['left'].set_linewidth(1.5)
@@ -90,6 +93,35 @@ def config_show(type, exp, loc):
     plt.savefig('./dataAnalysis/{}_{}.tiff'.format(type, exp))
     plt.show()
 
+'''
+    config_show() for Type2
+'''
+def config_show2(type, exp, loc):
+
+    font1 = {'size': 30}
+    if type == 'ROC':
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好地观察图像
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate', font1)
+        plt.ylabel('True Positive Rate', font1)
+        plt.title('ROC Curve', fontsize=30)
+    elif type == 'PR':
+        plt.xlim([-0.05, 1.05])  # 设置x、y轴的上下限，以免和边缘重合，更好地观察图像
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('Recall', font1)
+        plt.ylabel('Precision', font1)
+        plt.title('PR Curve', fontsize=30)
+    plt.legend(prop={'size': 25}, loc=loc)
+    plt.tick_params(labelsize=25)
+    ax = plt.gca()
+    ax.spines['bottom'].set_linewidth(1.5)
+    ax.spines['left'].set_linewidth(1.5)
+    ax.spines['right'].set_color('gray')
+    ax.spines['top'].set_color('gray')
+    plt.rcParams['savefig.dpi'] = 300
+    plt.rcParams['figure.dpi'] = 300
+    plt.savefig('./dataAnalysis/{}_{}.tiff'.format(type, exp))
+    plt.show()
 
 # Delong Test: Referenced from https://blog.csdn.net/weixin_42404713/article/details/120146245
 class DelongTest():
@@ -172,8 +204,8 @@ if __name__ == '__main__':
     rcParams.update(config)
 
     # 保存实验结果的, 用以绘图和计算DelongTets的 .txt
-    # './C.txt' './M.txt' './P.txt' './best_in_CMP.txt'
-    results = './TZPZ.txt'
+    # './C.txt' './M.txt' './P.txt' './best_CMP.txt' './TZPZ.txt'
+    results = './best_CMP.txt'
 
     # --------------Prepare Data for drawing--------------#
     seriesWithROI, AUCs = [], []
@@ -199,9 +231,10 @@ if __name__ == '__main__':
     # 'hsv', 'nipy_spectral', 'gist_ncar'
     # color_map_RGB, color_map_HEX = generate_colors(len(seriesWithROI), 'jet')
     # print('color_map:', color_map_HEX)
-    # 红蓝绿/红蓝绿黄colormap
-    # color_map_HEX = ['#24e02a', '#369ee3', '#ff0000']
-    color_map_HEX = ['#24e02a', '#369ee3', '#ff0000', '#FF9F00']
+    # 红蓝绿/红蓝红蓝/红蓝绿黄colormap
+    color_map_HEX = ['#24e02a', '#369ee3', '#ff0000']
+    # color_map_HEX = ['#ff0000', '#369ee3', '#ff0000', '#369ee3']
+    # color_map_HEX = ['#24e02a', '#369ee3', '#ff0000', '#FF9F00']
     # --------------Prepare Data for drawing--------------#
 
     # 画布尺寸
@@ -237,15 +270,22 @@ if __name__ == '__main__':
             auc_values.append(roc_auc)
         CI_95 = np.percentile(auc_values, (2.5, 97.5))
 
-        # 计算FPR、TPR, 输出AUC(95%CI), 作图
+        # # 计算FPR、TPR, 输出AUC(95%CI), 作图
         fpr, tpr, threshold = metrics.roc_curve(np.array(labelList), np.array(predList))
         print("'95%CI' in {}: {}-{}".format(roiName,
                                             round(auc(fpr, tpr), 4),
                                             (round(CI_95[0], 4), round(CI_95[1], 4))))
         print('*----------------------------------')
-        plt.plot(fpr, tpr, '--', color=color, label='{}(AUC = {:.2f})'.format(roiName, auc(fpr, tpr)), lw=2)
+
+        # 绘制实/虚线
+        # if 'Z' in roiName:
+        #     plt.plot(fpr, tpr, '-', color=color, label='{}, AUC = {:.2f}'.format('P-'+roiName.split('-')[-1], auc(fpr, tpr)), lw=2)
+        # else:
+        #     plt.plot(fpr, tpr, '--', color=color, label='{}, AUC = {:.2f}'.format(roiName.split('-')[-1], auc(fpr, tpr)), lw=2)
+
+        plt.plot(fpr, tpr, '--', color=color, label='{}, AUC = {:.2f}'.format(roiName[-1], auc(fpr, tpr)), lw=2)
     plt.plot([0, 1], [0, 1], '--', color='#949494', lw=1)
-    config_show('ROC', 'Test_' + results.split('.')[-2][1:], loc="lower right")
+    config_show2('ROC', 'Test_' + results.split('.')[-2][1:], loc="lower right")
     # --------------Draw ROC in Train&Test--------------#
 
     # --------------Draw PR in Train&Test--------------#
@@ -263,12 +303,15 @@ if __name__ == '__main__':
         precision, recall, threshold = metrics.precision_recall_curve(np.array(labelList), np.array(predList))
         # plt.plot(recall ,precision, '--', color=color, label='{}'.format(roiName), lw=2)
         # 显示AP用下面这个
-        plt.plot(recall ,precision, '--', color=color,
-                 label='{}(AP = {:.2f})'.format(roiName,
-                                                average_precision_score(np.array(labelList),
-                                                                        np.array(predList))), lw=2)
+        plt.plot(recall ,precision, '--', color=color,label='{}, AP = {:.2f}'.format(roiName[-1],average_precision_score(np.array(labelList),np.array(predList))), lw=2)
 
-    config_show('PR', 'Test_' + results.split('.')[-2][1:], loc='best')
+        # 绘制实/虚线
+        # if 'Z' in roiName:
+        #     plt.plot(recall ,precision, '-', color=color,label='{}, AP = {:.2f}'.format('P-'+roiName.split('-')[-1],average_precision_score(np.array(labelList),np.array(predList))), lw=2)
+        # else:
+        #     plt.plot(recall ,precision, '--', color=color,label='{}, AP = {:.2f}'.format(roiName.split('-')[-1],average_precision_score(np.array(labelList),np.array(predList))), lw=2)
+
+    config_show2('PR', 'Test_' + results.split('.')[-2][1:], loc='best')
     # --------------Draw PR in Train&Test--------------#
 
     # --------------form .txt--------------#

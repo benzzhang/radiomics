@@ -125,9 +125,9 @@ if __name__ == '__main__':
     # best_model = "T2WI+ADC+DWI-P"
     best_model = None
 
-    path3 = "../data-PZ/RT-P.csv"
-    path6 = "../data-PZ/RA-P.csv"
-    path9 = "../data-PZ/RD-P.csv"
+    path3 = "../data-TZ/RT-P.csv"
+    path6 = "../data-TZ/RA-P.csv"
+    path9 = "../data-TZ/RD-P.csv"
 
     mode_dict = {
                  "T2WI+ADC+DWI-P": [path3, path6, path9],
