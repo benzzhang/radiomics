@@ -1,6 +1,5 @@
 # radiomics
-binary classify using ML model (TODO: or DL model)
-
+binary classify using ML model
 
 ```bash
 │  .gitignore

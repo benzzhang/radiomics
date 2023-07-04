@@ -5,3 +5,7 @@
 *.xls
 *.xlsx
 *.txt
+!影像标签文件及特征提取代码/统一命名的nii文件.txt
+!dataAnalysis/DelongTest_Results.txt
+!dataAnalysis/RStudio_DelongTest.txt
+!requirements.txt
