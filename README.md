@@ -1,5 +1,11 @@
 # radiomics
-binary classify using ML model
+binary classify using ML model.  
+This repo has been used in this paper:  
+<pre>
+<a href="https://doi.org/10.1016/j.acra.2023.06.011">Qiu Y, Liu YF, Shu X, Qiao XF, Ai GY, He XJ.  
+Peritumoral Radiomics Strategy Based on Ensemble Learning for the Prediction of Gleason Grade Group of Prostate Cancer  
+[published online ahead of print, 2023 Jun 29]. Acad Radiol. 2023;S1076-6332(23)00306-9. doi:10.1016/j.acra.2023.06.011</a>
+</pre>
 
 ```bash
 │  .gitignore
